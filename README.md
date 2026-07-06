@@ -40,16 +40,7 @@ git clone https://github.com/TechIdiots-LLC/TrailStumbler.git
 cd TrailStumbler
 ```
 
-2. Add the TechIdiots GitHub Packages feed (required for dev prerelease dependencies):
-
-```
-dotnet nuget update source techidiots-github \
-  --username <your-github-username> \
-  --password <PAT-with-read:packages-scope> \
-  --store-password-in-clear-text
-```
-
-3. Restore and build:
+2. Restore and build:
 
 ```
 # Windows
@@ -66,17 +57,6 @@ dotnet build TrailStumbler/TrailStumbler.csproj -f net10.0-android36.0
 ```
 dotnet run --project TrailStumbler/TrailStumbler.csproj -f net10.0-windows10.0.19041.0
 ```
-
-### NuGet dependencies
-
-TrailStumbler depends on two packages that are not yet published to NuGet.org:
-
-| Package | Source |
-|---|---|
-| `MapLibreNative.Maui.Handlers` | [maplibre-maui-ac](https://github.com/TechIdiots-LLC/maplibre-maui-ac) |
-| `MaplibreNative.Routing` | [MaplibreNativeRouting](https://github.com/TechIdiots-LLC/MaplibreNativeRouting) |
-
-These are hosted on the [TechIdiots-LLC GitHub Packages NuGet feed](https://nuget.pkg.github.com/TechIdiots-LLC/index.json). GitHub Actions CI authenticates automatically via `GITHUB_TOKEN`; local development requires a [personal access token](https://github.com/settings/tokens) with `read:packages` scope.
 
 ## CI / Release workflow
 
