@@ -1,0 +1,338 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:TrailStumbler.ViewModels"
+             xmlns:maplibre="clr-namespace:MapLibreNative.Maui.Handlers;assembly=MapLibreNative.Maui.Handlers"
+             xmlns:routing="clr-namespace:MaplibreNative.Routing.Controls;assembly=MaplibreNative.Routing"
+             x:DataType="vm:MapViewModel"
+             x:Class="TrailStumbler.Views.MapPage"
+             Title="Map">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="{Binding LabelsButtonText}"
+                     Command="{Binding ToggleLabelsCommand}" />
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="*,Auto">
+
+        <!-- Map fills Row 0. All trail/recording layers are added imperatively via
+             the controller once the style has loaded (OnMapControllerReady). -->
+        <maplibre:MapLibreMap
+            Grid.Row="0"
+            x:Name="Map"
+            StyleUrl="{Binding StyleUrl}"
+            ShowNavigationControls="True"
+            ShowGpsControl="True"
+            ShowAttributionControl="True"
+            MyLocationEnabled="True" />
+
+        <!-- Tap-to-inspect popup, floats over the bottom of the map. -->
+        <Border Grid.Row="0"
+                VerticalOptions="End"
+                Margin="10,0,10,10"
+                Padding="14,12"
+                BackgroundColor="White"
+                StrokeShape="RoundRectangle 10"
+                Stroke="#DDDDDD"
+                IsVisible="{Binding IsPopupVisible}">
+            <Border.Shadow>
+                <Shadow Brush="Black" Opacity="0.25" Radius="12" Offset="0,2" />
+            </Border.Shadow>
+
+            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="3">
+                <Label Grid.Row="0" Grid.Column="0"
+                       Text="{Binding SelectedFeature.Title}"
+                       TextColor="Black"
+                       FontAttributes="Bold" FontSize="16" />
+                <Button Grid.Row="0" Grid.Column="1"
+                        Text="âœ•"
+                        Command="{Binding ClosePopupCommand}"
+                        BackgroundColor="Transparent" TextColor="Gray"
+                        Padding="6,0" FontSize="14" />
+
+                <Label Grid.Row="1" Grid.ColumnSpan="2" FontSize="12" TextColor="Gray">
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span Text="{Binding SelectedFeature.LayerName}" />
+                            <Span Text="  " />
+                            <Span Text="{Binding SelectedFeature.Category}" />
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+
+                <ScrollView Grid.Row="2" Grid.ColumnSpan="2" MaximumHeightRequest="120">
+                    <Label Text="{Binding SelectedFeature.Description}"
+                           FontSize="13" TextColor="#333333"
+                           IsVisible="{Binding SelectedFeature.Description, Converter={StaticResource IsNotNullOrEmpty}}" />
+                </ScrollView>
+            </Grid>
+        </Border>
+
+        <!-- Navigation panel â€” floats at top while navigating. -->
+        <routing:NavigationPanel
+            x:Name="NavPanel"
+            Grid.Row="0"
+            VerticalOptions="Start"
+            IsVisible="{Binding IsNavigating}" />
+
+        <!-- "Placing pin" tap-here banner â€” appears below NavPanel. -->
+        <Border Grid.Row="0"
+                VerticalOptions="Start"
+                HorizontalOptions="Center"
+                Margin="0,56,0,0"
+                Padding="16,8"
+                BackgroundColor="#CC1565C0"
+                StrokeShape="RoundRectangle 20"
+                Stroke="Transparent"
+                IsVisible="{Binding IsPlacingPin}">
+            <Label TextColor="White" FontSize="13" FontAttributes="Bold"
+                   Text="Tap the map to place pin" />
+        </Border>
+
+        <!-- Pull-up route planner sheet.
+             HeightRequest toggled between 56 (collapsed, handle only) and 220 (expanded)
+             by code-behind animation; SheetContent visibility driven from code-behind. -->
+        <Border x:Name="RouteSheet"
+                Grid.Row="0"
+                VerticalOptions="End"
+                HorizontalOptions="Fill"
+                Margin="0"
+                Padding="0"
+                HeightRequest="56"
+                BackgroundColor="#F5F5F5"
+                StrokeShape="RoundRectangle 16,16,0,0"
+                Stroke="#CCCCCC">
+            <Border.Shadow>
+                <Shadow Brush="Black" Opacity="0.18" Radius="10" Offset="0,-2" />
+            </Border.Shadow>
+
+            <Grid RowDefinitions="Auto,*">
+
+                <!-- Drag handle â€” tapping toggles expand/collapse. -->
+                <Button x:Name="SheetHandle"
+                        Grid.Row="0"
+                        Text="âŒƒ"
+                        FontSize="16"
+                        TextColor="#999999"
+                        BackgroundColor="Transparent"
+                        HeightRequest="32"
+                        Padding="0"
+                        Clicked="OnSheetHandleClicked" />
+
+                <!-- Expanded content â€” toggled IsVisible from code-behind. -->
+                <Grid x:Name="SheetContent"
+                      Grid.Row="1"
+                      RowDefinitions="36,36,36,36,Auto,Auto,Auto"
+                      RowSpacing="4"
+                      Padding="14,0,14,10"
+                      IsVisible="False">
+
+                    <!-- A (origin) row â€” blue border highlight when IsPlacingOrigin. -->
+                    <Border Grid.Row="0"
+                            Padding="10,6"
+                            StrokeShape="RoundRectangle 8"
+                            Stroke="Transparent"
+                            BackgroundColor="White">
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border"
+                                         Binding="{Binding IsPlacingOrigin}" Value="True">
+                                <Setter Property="Stroke" Value="#1565C0" />
+                                <Setter Property="BackgroundColor" Value="#E3F2FD" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <Grid ColumnDefinitions="20,*,Auto" ColumnSpacing="8">
+                            <Ellipse Grid.Column="0"
+                                     WidthRequest="14" HeightRequest="14"
+                                     Fill="#22AA22"
+                                     VerticalOptions="Center" />
+                            <Label Grid.Column="1"
+                                   Text="{Binding OriginLabel}"
+                                   FontSize="12" TextColor="#333333"
+                                   VerticalOptions="Center" />
+                            <Button Grid.Column="2"
+                                    Text="Place A"
+                                    Command="{Binding ActivateOriginPlacementCommand}"
+                                    BackgroundColor="#22AA22"
+                                    TextColor="White"
+                                    FontSize="11"
+                                    CornerRadius="6"
+                                    Padding="8,0"
+                                    HeightRequest="28"
+                                    WidthRequest="70" />
+                        </Grid>
+                    </Border>
+
+                    <!-- B (destination) row â€” blue border highlight when IsPlacingDestination. -->
+                    <Border Grid.Row="1"
+                            Padding="10,6"
+                            StrokeShape="RoundRectangle 8"
+                            Stroke="Transparent"
+                            BackgroundColor="White">
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border"
+                                         Binding="{Binding IsPlacingDestination}" Value="True">
+                                <Setter Property="Stroke" Value="#1565C0" />
+                                <Setter Property="BackgroundColor" Value="#E3F2FD" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <Grid ColumnDefinitions="20,*,Auto" ColumnSpacing="8">
+                            <Ellipse Grid.Column="0"
+                                     WidthRequest="14" HeightRequest="14"
+                                     Fill="#CC2222"
+                                     VerticalOptions="Center" />
+                            <Label Grid.Column="1"
+                                   Text="{Binding DestinationLabel}"
+                                   FontSize="12" TextColor="#333333"
+                                   VerticalOptions="Center" />
+                            <Button Grid.Column="2"
+                                    Text="Place B"
+                                    Command="{Binding ActivateDestinationPlacementCommand}"
+                                    BackgroundColor="#CC2222"
+                                    TextColor="White"
+                                    FontSize="11"
+                                    CornerRadius="6"
+                                    Padding="8,0"
+                                    HeightRequest="28"
+                                    WidthRequest="70" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Profile picker -->
+                    <Picker Grid.Row="2"
+                            ItemsSource="{x:Static vm:MapViewModel.ProfileNames}"
+                            SelectedIndex="{Binding SelectedProfileIndex}"
+                            FontSize="12"
+                            TextColor="#333333"
+                            BackgroundColor="White" />
+
+                    <!-- Action buttons row -->
+                    <Grid Grid.Row="3"
+                          ColumnDefinitions="*,Auto,Auto"
+                          ColumnSpacing="8">
+                        <Button Grid.Column="0"
+                                Text="Plan Route"
+                                Command="{Binding StartNavigationCommand}"
+                                BackgroundColor="#1565C0"
+                                TextColor="White"
+                                FontSize="13"
+                                CornerRadius="8"
+                                HeightRequest="36" />
+                        <Button Grid.Column="1"
+                                Text="Stop"
+                                Command="{Binding StopNavigationCommand}"
+                                BackgroundColor="#B71C1C"
+                                TextColor="White"
+                                FontSize="13"
+                                CornerRadius="8"
+                                Padding="12,0"
+                                HeightRequest="36"
+                                IsVisible="{Binding IsNavigating}" />
+                        <Button Grid.Column="2"
+                                Text="Clear"
+                                Command="{Binding ClearWaypointsCommand}"
+                                BackgroundColor="#555555"
+                                TextColor="White"
+                                FontSize="13"
+                                CornerRadius="8"
+                                Padding="12,0"
+                                HeightRequest="36" />
+                    </Grid>
+
+                    <!-- Route count stepper â€” visible only when not navigating -->
+                    <Grid Grid.Row="4"
+                          ColumnDefinitions="*,Auto,Auto,Auto"
+                          ColumnSpacing="6"
+                          IsVisible="{Binding IsNavigating, Converter={StaticResource InvertBool}}">
+                        <Label Grid.Column="0"
+                               Text="{Binding RouteCountLabel}"
+                               FontSize="12"
+                               TextColor="#333333"
+                               VerticalOptions="Center" />
+                        <Button Grid.Column="1"
+                                Text="âˆ’"
+                                Command="{Binding DecreaseRouteCountCommand}"
+                                BackgroundColor="#E0E0E0"
+                                TextColor="#333333"
+                                FontSize="14"
+                                CornerRadius="6"
+                                WidthRequest="34"
+                                HeightRequest="30"
+                                Padding="0" />
+                        <Button Grid.Column="2"
+                                Text="+"
+                                Command="{Binding IncreaseRouteCountCommand}"
+                                BackgroundColor="#E0E0E0"
+                                TextColor="#333333"
+                                FontSize="14"
+                                CornerRadius="6"
+                                WidthRequest="34"
+                                HeightRequest="30"
+                                Padding="0" />
+                    </Grid>
+
+                    <!-- Route alternative cards â€” shown after a successful Plan Route -->
+                    <VerticalStackLayout Grid.Row="5"
+                                         Spacing="6"
+                                         IsVisible="{Binding HasRouteOptions}">
+                        <BindableLayout.ItemsSource>
+                            <Binding Path="RouteOptions" />
+                        </BindableLayout.ItemsSource>
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="vm:RouteOptionViewModel">
+                                <Border Padding="10,8"
+                                        StrokeShape="RoundRectangle 8"
+                                        BackgroundColor="White"
+                                        Stroke="#DDDDDD">
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border"
+                                                     Binding="{Binding IsSelected}" Value="True">
+                                            <Setter Property="Stroke" Value="#1565C0" />
+                                            <Setter Property="BackgroundColor" Value="#E3F2FD" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <Label Grid.Column="0"
+                                               Text="{Binding Label}"
+                                               FontSize="12"
+                                               TextColor="#333333"
+                                               VerticalOptions="Center" />
+                                        <Button Grid.Column="1"
+                                                Text="Use"
+                                                Command="{Binding SelectCommand}"
+                                                BackgroundColor="#1565C0"
+                                                TextColor="White"
+                                                FontSize="11"
+                                                CornerRadius="6"
+                                                Padding="10,0"
+                                                HeightRequest="28" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+
+                    <!-- Route status / diagnostic log (multi-line during routing) -->
+                    <Label Grid.Row="6"
+                           Text="{Binding RouteStatusMessage}"
+                           FontSize="11"
+                           TextColor="#666666"
+                           HorizontalOptions="Fill"
+                           HorizontalTextAlignment="Start"
+                           LineBreakMode="WordWrap"
+                           MaxLines="12"
+                           IsVisible="{Binding RouteStatusMessage, Converter={StaticResource IsNotNullOrEmpty}}" />
+
+                </Grid>
+            </Grid>
+        </Border>
+
+        <Label Grid.Row="1"
+               Text="{Binding StatusMessage}"
+               HorizontalOptions="Center"
+               FontSize="11"
+               TextColor="Gray"
+               Padding="8,3" />
+
+    </Grid>
+
+</ContentPage>

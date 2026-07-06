@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore TrailStumbler.Core.Tests/TrailStumbler.Core.Tests.csproj
+
+      - name: Test
+        run: dotnet test TrailStumbler.Core.Tests/TrailStumbler.Core.Tests.csproj --configuration Release --no-restore --verbosity normal
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install MAUI Windows workload
+        run: dotnet workload install maui-windows
+
+      - name: Restore
+        run: dotnet restore TrailStumbler/TrailStumbler.csproj
+
+      - name: Build
+        run: dotnet build TrailStumbler/TrailStumbler.csproj -f net10.0-windows10.0.19041.0 --configuration Release --no-restore
+
+      - name: Publish
+        run: |
+          dotnet publish TrailStumbler/TrailStumbler.csproj `
+            -f net10.0-windows10.0.19041.0 `
+            --configuration Release `
+            --no-restore `
+            --output ./publish/windows
+
+      - name: Upload CI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TrailStumbler-ci-windows-${{ github.sha }}
+          path: ./publish/windows/
+          retention-days: 7
+
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install MAUI Android workload
+        run: dotnet workload install maui-android
+
+      - name: Restore
+        run: dotnet restore TrailStumbler/TrailStumbler.csproj
+
+      - name: Build
+        run: dotnet build TrailStumbler/TrailStumbler.csproj -f net10.0-android36.0 --configuration Release --no-restore
+
+      - name: Upload CI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TrailStumbler-ci-android-${{ github.sha }}
+          path: TrailStumbler/bin/Release/net10.0-android36.0/
+          retention-days: 7

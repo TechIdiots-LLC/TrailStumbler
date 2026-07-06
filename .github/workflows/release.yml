@@ -1,0 +1,187 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  release-check:
+    name: Check if version is already released
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version and check GitHub releases
+        id: check
+        run: |
+          VERSION=$(grep -oP '<ApplicationDisplayVersion>\K[^<]+' TrailStumbler/TrailStumbler.csproj | head -1)
+
+          if echo "$VERSION" | grep -qP '\-(alpha|beta|rc)\.\d+'; then
+            RELEASE_TYPE="prerelease"
+          else
+            RELEASE_TYPE="regular"
+          fi
+
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/v${VERSION}" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}")
+
+          if [ "$HTTP_STATUS" = "200" ]; then
+            PUBLISHED="true"
+          else
+            PUBLISHED="false"
+          fi
+
+          echo "version=$VERSION"            >> "$GITHUB_OUTPUT"
+          echo "published=$PUBLISHED"        >> "$GITHUB_OUTPUT"
+          echo "release_type=$RELEASE_TYPE"  >> "$GITHUB_OUTPUT"
+          echo "VERSION: $VERSION"
+          echo "RELEASE_TYPE: $RELEASE_TYPE"
+          echo "PUBLISHED: $PUBLISHED"
+
+    outputs:
+      published:    ${{ steps.check.outputs.published }}
+      version:      ${{ steps.check.outputs.version }}
+      release_type: ${{ steps.check.outputs.release_type }}
+
+  build-windows:
+    name: Build Windows release
+    runs-on: windows-latest
+    needs: release-check
+    if: ${{ needs.release-check.outputs.published == 'false' }}
+    environment: release
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install MAUI Windows workload
+        run: dotnet workload install maui-windows
+
+      - name: Restore
+        run: dotnet restore TrailStumbler/TrailStumbler.csproj
+
+      - name: Publish self-contained Windows app
+        run: |
+          dotnet publish TrailStumbler/TrailStumbler.csproj `
+            -f net10.0-windows10.0.19041.0 `
+            --configuration Release `
+            --no-restore `
+            --output ./publish/windows
+
+      - name: Package Windows release artifact
+        shell: pwsh
+        run: |
+          $version = "${{ needs.release-check.outputs.version }}"
+          Compress-Archive `
+            -Path "./publish/windows/*" `
+            -DestinationPath "./TrailStumbler-v${version}-win-x64.zip"
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: TrailStumbler-v${{ needs.release-check.outputs.version }}-win-x64.zip
+          retention-days: 7
+
+  build-android:
+    name: Build Android release (APK)
+    runs-on: ubuntu-latest
+    needs: release-check
+    if: ${{ needs.release-check.outputs.published == 'false' }}
+    environment: release
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install MAUI Android workload
+        run: dotnet workload install maui-android
+
+      - name: Restore
+        run: dotnet restore TrailStumbler/TrailStumbler.csproj
+
+      - name: Publish Android APK
+        run: |
+          dotnet publish TrailStumbler/TrailStumbler.csproj \
+            -f net10.0-android36.0 \
+            --configuration Release \
+            --no-restore
+
+      - name: Locate and rename APK
+        shell: bash
+        run: |
+          VERSION="${{ needs.release-check.outputs.version }}"
+          APK=$(find . -name "*.apk" | head -1)
+          echo "Found APK: $APK"
+          cp "$APK" "TrailStumbler-v${VERSION}.apk"
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-android
+          path: TrailStumbler-v${{ needs.release-check.outputs.version }}.apk
+          retention-days: 7
+
+  release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: [release-check, build-windows, build-android]
+    if: ${{ needs.release-check.outputs.published == 'false' }}
+    environment: release
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: ./artifacts
+          merge-multiple: true
+
+      - name: Extract changelog for version
+        run: |
+          VERSION="${{ needs.release-check.outputs.version }}"
+          awk -v ver="## $VERSION" \
+            'BEGIN{p=0} $0==ver{p=1; next} /^## / && p==1{exit} p==1{print}' \
+            CHANGELOG.md > changelog_for_version.md
+          echo "--- Release notes ---"
+          cat changelog_for_version.md
+
+      - name: Determine release flags
+        id: flags
+        run: |
+          if [[ "${{ needs.release-check.outputs.release_type }}" == 'regular' ]]; then
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=true"  >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag:        v${{ needs.release-check.outputs.version }}
+          name:       v${{ needs.release-check.outputs.version }}
+          bodyFile:   changelog_for_version.md
+          artifacts:  "./artifacts/TrailStumbler-v${{ needs.release-check.outputs.version }}-win-x64.zip,./artifacts/TrailStumbler-v${{ needs.release-check.outputs.version }}.apk"
+          prerelease: ${{ steps.flags.outputs.prerelease }}
+          allowUpdates: true
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

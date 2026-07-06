@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="TrailMapper tests" xmlns="http://www.topografix.com/GPX/1/1">
+  <wpt lat="43.6680908" lon="-75.4050674">
+    <ele>312.5</ele>
+    <name>The Roz B&amp;B</name>
+    <desc>Trail Accessible Lodging</desc>
+    <sym>Lodging</sym>
+  </wpt>
+  <trk>
+    <name>Morning Ride</name>
+    <desc>Short loop</desc>
+    <trkseg>
+      <trkpt lat="41.9993318" lon="-78.0300158"><ele>512.0</ele><time>2026-07-04T13:00:00Z</time></trkpt>
+      <trkpt lat="41.9994659" lon="-78.0303039"><ele>513.1</ele><time>2026-07-04T13:00:10Z</time></trkpt>
+      <trkpt lat="42.0001000" lon="-78.0310000"><ele>515.9</ele><time>2026-07-04T13:00:25Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>

@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>TrailStumbler.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Entity attributes ([PrimaryKey], [Indexed]) on the models; the connection
+         itself lives in the MAUI head project's repository. -->
+    <PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="TrailStumbler.Core.Tests" />
+  </ItemGroup>
+
+</Project>

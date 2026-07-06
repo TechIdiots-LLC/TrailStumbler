@@ -1,0 +1,18 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Trailhead Parking", "description": "Main lot" },
+      "geometry": { "type": "Point", "coordinates": [-75.3998184, 43.8367538] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Dutton Hollow Road", "stroke": "#008000", "stroke-width": 4 },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[-78.0300158, 41.9993318], [-78.0303039, 41.9994659], [-78.0310000, 42.0001000]]
+      }
+    }
+  ]
+}

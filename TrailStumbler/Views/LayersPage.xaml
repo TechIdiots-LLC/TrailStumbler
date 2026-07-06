@@ -1,0 +1,177 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:TrailStumbler.ViewModels"
+             x:DataType="vm:LayersViewModel"
+             x:Class="TrailStumbler.Views.LayersPage"
+             Title="Layers">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Import" Command="{Binding ImportCommand}" />
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- Import status / progress -->
+        <VerticalStackLayout Grid.Row="0" Padding="10,4" Spacing="4"
+                             IsVisible="{Binding ImportStatus, Converter={StaticResource IsNotNullOrEmpty}}">
+            <Label Text="{Binding ImportStatus}" FontSize="12" TextColor="Gray" />
+            <ActivityIndicator IsRunning="{Binding IsImporting}" IsVisible="{Binding IsImporting}"
+                               HeightRequest="18" />
+        </VerticalStackLayout>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout>
+
+                <!-- â”€â”€ IMPORTED LAYERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                <Label Text="IMPORTED LAYERS"
+                       FontSize="11" FontAttributes="Bold"
+                       TextColor="Gray"
+                       Padding="14,10,14,4"
+                       CharacterSpacing="1" />
+
+                <CollectionView ItemsSource="{Binding ImportedLayers}"
+                                SelectionMode="None">
+                    <CollectionView.EmptyView>
+                        <Label Text="Tap Import to add GeoJSON, GPX, KML or KMZ files."
+                               FontSize="13" TextColor="Gray"
+                               Padding="20,8" HorizontalTextAlignment="Center" />
+                    </CollectionView.EmptyView>
+
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:LayerItemViewModel">
+                            <SwipeView>
+                                <SwipeView.RightItems>
+                                    <SwipeItems>
+                                        <SwipeItem Text="Delete"
+                                                   BackgroundColor="#D32F2F"
+                                                   Command="{Binding DeleteCommand}" />
+                                    </SwipeItems>
+                                </SwipeView.RightItems>
+
+                                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto"
+                                      Padding="10,8" ColumnSpacing="8">
+
+                                    <CheckBox Grid.Column="0"
+                                              IsChecked="{Binding IsVisible, Mode=TwoWay}"
+                                              VerticalOptions="Center" />
+
+                                    <!-- Color swatch â€” tap to change -->
+                                    <BoxView Grid.Column="1"
+                                             WidthRequest="16" HeightRequest="16"
+                                             CornerRadius="8"
+                                             VerticalOptions="Center"
+                                             Color="{Binding ColorHex, Converter={StaticResource HexToColor}}">
+                                        <BoxView.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding ChangeColorCommand}" />
+                                        </BoxView.GestureRecognizers>
+                                    </BoxView>
+
+                                    <VerticalStackLayout Grid.Column="2" Spacing="1" VerticalOptions="Center">
+                                        <Label Text="{Binding Name}" FontSize="15" LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding Subtitle}" FontSize="11" TextColor="Gray"
+                                               LineBreakMode="TailTruncation" />
+                                    </VerticalStackLayout>
+
+                                    <!-- Routing toggle: only shown for Line layers -->
+                                    <VerticalStackLayout Grid.Column="3" Spacing="0" VerticalOptions="Center"
+                                                         IsVisible="{Binding IsLineLayer}">
+                                        <CheckBox IsChecked="{Binding IsUsedForRouting, Mode=TwoWay}"
+                                                  VerticalOptions="Center"
+                                                  ToolTipProperties.Text="Include in routing" />
+                                        <Label Text="Route" FontSize="9" TextColor="Gray"
+                                               HorizontalOptions="Center" />
+                                    </VerticalStackLayout>
+
+                                    <!-- Export button -->
+                                    <Button Grid.Column="4"
+                                            Text="ðŸ“¤"
+                                            FontSize="16"
+                                            Padding="8,2"
+                                            BackgroundColor="Transparent"
+                                            Command="{Binding ExportCommand}"
+                                            ToolTipProperties.Text="Export layer" />
+
+                                    <Button Grid.Column="5"
+                                            Text="âŒ–"
+                                            FontSize="20"
+                                            Padding="10,2"
+                                            BackgroundColor="Transparent"
+                                            TextColor="#1565C0"
+                                            Command="{Binding ZoomCommand}"
+                                            ToolTipProperties.Text="Zoom to layer" />
+                                </Grid>
+                            </SwipeView>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!-- â”€â”€ MY RECORDINGS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                <Label Text="MY RECORDINGS"
+                       FontSize="11" FontAttributes="Bold"
+                       TextColor="Gray"
+                       Padding="14,14,14,4"
+                       CharacterSpacing="1"
+                       IsVisible="{Binding HasRecordedTracks}" />
+
+                <CollectionView ItemsSource="{Binding RecordedTracks}"
+                                SelectionMode="None"
+                                IsVisible="{Binding HasRecordedTracks}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:RecordingItemViewModel">
+                            <SwipeView>
+                                <SwipeView.RightItems>
+                                    <SwipeItems>
+                                        <SwipeItem Text="Delete"
+                                                   BackgroundColor="#D32F2F"
+                                                   Command="{Binding DeleteCommand}" />
+                                    </SwipeItems>
+                                </SwipeView.RightItems>
+
+                                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto"
+                                      Padding="10,8" ColumnSpacing="8">
+
+                                    <CheckBox Grid.Column="0"
+                                              IsChecked="{Binding IsVisible, Mode=TwoWay}"
+                                              VerticalOptions="Center" />
+
+                                    <!-- Yellow track color indicator (non-interactive) -->
+                                    <BoxView Grid.Column="1"
+                                             WidthRequest="16" HeightRequest="16"
+                                             CornerRadius="8"
+                                             VerticalOptions="Center"
+                                             Color="#FFFF66" />
+
+                                    <VerticalStackLayout Grid.Column="2" Spacing="1" VerticalOptions="Center">
+                                        <Label Text="{Binding Name}" FontSize="15" LineBreakMode="TailTruncation" />
+                                        <Label Text="{Binding DistanceLabel}" FontSize="11" TextColor="Gray" />
+                                    </VerticalStackLayout>
+
+                                    <!-- Export GPX -->
+                                    <Button Grid.Column="3"
+                                            Text="ðŸ“¤"
+                                            FontSize="16"
+                                            Padding="8,2"
+                                            BackgroundColor="Transparent"
+                                            Command="{Binding ExportGpxCommand}"
+                                            ToolTipProperties.Text="Export GPX" />
+
+                                    <Button Grid.Column="4"
+                                            Text="âŒ–"
+                                            FontSize="20"
+                                            Padding="10,2"
+                                            BackgroundColor="Transparent"
+                                            TextColor="#1565C0"
+                                            Command="{Binding ZoomCommand}"
+                                            ToolTipProperties.Text="Zoom to track" />
+                                </Grid>
+                            </SwipeView>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+
+</ContentPage>

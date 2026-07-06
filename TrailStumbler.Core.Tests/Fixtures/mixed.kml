@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+<Document>
+  <Style id="line1">
+    <LineStyle>
+      <color>FF008000</color>
+      <width>4</width>
+    </LineStyle>
+  </Style>
+  <Style id="point1">
+    <IconStyle><Icon><href>https://www.gpstrailmasters.com/content/symbols/parking.png</href></Icon></IconStyle>
+  </Style>
+  <Folder>
+    <name>Point Features</name>
+    <Placemark>
+      <description><![CDATA[Trail Accessible Parking<br><br>]]></description>
+      <name>Parking</name>
+      <styleUrl>#point1</styleUrl>
+      <Point>
+        <coordinates>-75.3998184167,43.8367538333,0</coordinates>
+      </Point>
+    </Placemark>
+  </Folder>
+  <Folder>
+    <name>Line Features</name>
+    <Placemark>
+      <description><![CDATA[UTV/ATV 60 Inches and Motorcycles<br><br>]]></description>
+      <name>Dutton Hollow Road</name>
+      <styleUrl>#line1</styleUrl>
+      <LineString>
+        <coordinates>
+          -78.0300158611,41.9993318333,0
+          -78.0303039444,41.9994659444,0
+        </coordinates>
+      </LineString>
+    </Placemark>
+    <Placemark>
+      <name>Track Sample</name>
+      <gx:Track>
+        <when>2023-04-18T12:00:00Z</when>
+        <when>2023-04-18T12:00:10Z</when>
+        <gx:coord>-78.1 42.0 500</gx:coord>
+        <gx:coord>-78.11 42.01 505</gx:coord>
+      </gx:Track>
+    </Placemark>
+  </Folder>
+</Document>
+</kml>

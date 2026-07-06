@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:TrailStumbler.ViewModels"
+             x:DataType="vm:SettingsViewModel"
+             x:Class="TrailStumbler.Views.SettingsPage"
+             Title="Settings">
+
+    <VerticalStackLayout Padding="16" Spacing="12">
+
+        <Label Text="Basemap style" FontAttributes="Bold" />
+        <Picker ItemsSource="{Binding StyleNames}"
+                SelectedItem="{Binding SelectedStyleName, Mode=TwoWay}" />
+
+        <Entry Placeholder="https://â€¦/style.json"
+               Text="{Binding CustomStyleUrl, Mode=TwoWay}"
+               IsVisible="{Binding IsCustom}" />
+
+        <Label Text="The map picks up style changes the next time it appears."
+               FontSize="12" TextColor="Gray" />
+
+    </VerticalStackLayout>
+
+</ContentPage>
