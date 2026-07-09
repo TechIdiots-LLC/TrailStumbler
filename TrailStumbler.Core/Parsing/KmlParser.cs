@@ -1,11 +1,11 @@
 ﻿/*
- * KmlParser â€” C# port of Mapbox's togeojson KML conversion logic (simplified),
+ * KmlParser — C# port of Mapbox's togeojson KML conversion logic (simplified),
  * via the Java port in geojson-mapper (KmlToGeoJson.java).
  * Original project: https://github.com/mapbox/togeojson (BSD-2-Clause)
  * Attribution: Mapbox and contributors; see https://github.com/mapbox/togeojson/blob/master/LICENSE
  *
  * Additions over the port: shared <Style>/<StyleMap> resolution so KML styling
- * survives import as GeoJSON simplestyle properties â€” LineStyle color/width become
+ * survives import as GeoJSON simplestyle properties — LineStyle color/width become
  * "stroke"/"stroke-width" (KML colors are AABBGGRR!), IconStyle icon hrefs become
  * "icon" plus a "category" derived from the icon filename (GPS Trail Masters uses
  * parking/fuel/food/lodging/camping/star icons). Mixed-geometry placemarks emit one
@@ -42,7 +42,7 @@ public class KmlParser : IGisParser
         return results;
     }
 
-    // â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Styles ────────────────────────────────────────────────────────────────
 
     private static Dictionary<string, KmlStyle> CollectStyles(XElement root)
     {
@@ -101,7 +101,7 @@ public class KmlParser : IGisParser
         return $"#{rr}{gg}{bb}".ToUpperInvariant();
     }
 
-    /// <summary>POI category from the icon filename: ".../symbols/parking.png" â†’ "parking".</summary>
+    /// <summary>POI category from the icon filename: ".../symbols/parking.png" → "parking".</summary>
     internal static string? CategoryFromIconHref(string? href)
     {
         if (string.IsNullOrWhiteSpace(href)) return null;
@@ -115,7 +115,7 @@ public class KmlParser : IGisParser
         catch { return null; }
     }
 
-    // â”€â”€ Placemarks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Placemarks ────────────────────────────────────────────────────────────
 
     private void PlacemarkToFeatures(XElement placemark, Dictionary<string, KmlStyle> styles, List<ParsedFeature> results)
     {
@@ -204,7 +204,7 @@ public class KmlParser : IGisParser
                     }
                     break;
                 }
-                case "Track": // covers gx:Track â€” local-name matching
+                case "Track": // covers gx:Track — local-name matching
                 {
                     var pts = Elements(child, "coord")
                         .Select(c => ParseSpaceTuple(c.Value))
@@ -271,9 +271,9 @@ public class KmlParser : IGisParser
         return Encoding.UTF8.GetString(ms.ToArray());
     }
 
-    // â”€â”€ Coordinate text parsing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Coordinate text parsing ───────────────────────────────────────────────
 
-    /// <summary>"lon,lat[,ele]" â†’ [lon, lat, ele?]</summary>
+    /// <summary>"lon,lat[,ele]" → [lon, lat, ele?]</summary>
     private static double[]? ParseCoordTuple(string? s)
     {
         if (string.IsNullOrWhiteSpace(s)) return null;
@@ -325,7 +325,7 @@ public class KmlParser : IGisParser
     private static string ListJson(List<double[]> pts)
         => "[" + string.Join(",", pts.Select(TupleJson)) + "]";
 
-    // â”€â”€ XML helpers (local-name matching; KML namespace usage varies) â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── XML helpers (local-name matching; KML namespace usage varies) ────────
 
     private static IEnumerable<XElement> Descendants(XElement el, string localName)
         => el.Descendants().Where(e => e.Name.LocalName == localName);

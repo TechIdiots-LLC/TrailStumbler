@@ -8,8 +8,8 @@ namespace TrailStumbler.Core.Parsing;
 
 /// <summary>
 /// Parses GPX 1.0/1.1 using local-name matching (namespace URIs differ between
-/// versions): wpt â†’ Point, trk â†’ one LineString per trkseg (trkpt times become a
-/// "coordTimes" property, togeojson-style), rte â†’ LineString.
+/// versions): wpt → Point, trk → one LineString per trkseg (trkpt times become a
+/// "coordTimes" property, togeojson-style), rte → LineString.
 /// </summary>
 public class GpxParser : IGisParser
 {

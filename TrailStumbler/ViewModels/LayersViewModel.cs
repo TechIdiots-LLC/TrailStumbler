@@ -67,12 +67,12 @@ public partial class LayersViewModel : ObservableObject
         RecordedTrackCount = RecordedTracks.Count;
     }
 
-    // â”€â”€ Import â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Import ────────────────────────────────────────────────────────────────
 
     private static readonly FilePickerFileType GisFileTypes = new(
         new Dictionary<DevicePlatform, IEnumerable<string>>
         {
-            [DevicePlatform.WinUI] = new[] { ".geojson", ".json", ".kml", ".kmz", ".gpx" },
+            [DevicePlatform.WinUI] = new[] { ".geojson", ".json", ".kml", ".kmz", ".gpx", ".img" },
             [DevicePlatform.Android] = new[] { "*/*" },
         });
 
@@ -94,7 +94,7 @@ public partial class LayersViewModel : ObservableObject
 
             foreach (var file in files)
             {
-                ImportStatus = $"Importing {file.FileName}â€¦";
+                ImportStatus = $"Importing {file.FileName}…";
 
                 var tempPath = Path.Combine(FileSystem.CacheDirectory, file.FileName);
                 await using (var src = await file.OpenReadAsync())
@@ -128,7 +128,7 @@ public partial class LayersViewModel : ObservableObject
         }
     }
 
-    // â”€â”€ Row callbacks â€” imported layers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Row callbacks — imported layers ───────────────────────────────────────
 
     public async Task OnItemVisibilityChangedAsync(LayerItemViewModel item, bool visible)
     {
@@ -211,7 +211,7 @@ public partial class LayersViewModel : ObservableObject
         }
     }
 
-    // â”€â”€ Row callbacks â€” recorded tracks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Row callbacks — recorded tracks ───────────────────────────────────────
 
     public async Task OnItemVisibilityChangedAsync(RecordingItemViewModel item, bool visible)
     {

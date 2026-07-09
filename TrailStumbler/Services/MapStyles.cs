@@ -2,7 +2,7 @@
 
 /// <summary>
 /// Basemap style presets and the persisted selection (MAUI Preferences).
-/// Same presets as VistumblerMAUI/atv-trail-map â€” tiles.wifidb.net styles.
+/// Same presets as VistumblerMAUI/atv-trail-map — tiles.wifidb.net styles.
 /// </summary>
 public static class MapStyles
 {
@@ -10,7 +10,7 @@ public static class MapStyles
 
     public const string DefaultUrl = "https://tiles.wifidb.net/styles/WDB_OSM/style.json";
 
-    public const string CustomName = "Customâ€¦";
+    public const string CustomName = "Custom…";
 
     public static readonly IReadOnlyList<(string Name, string Url)> Presets = new[]
     {

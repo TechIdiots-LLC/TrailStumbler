@@ -28,7 +28,7 @@ public class KmlParserTests
     {
         var line = ParseFixture().Single(f => f.Name == "Dutton Hollow Road");
         using var props = JsonDocument.Parse(line.PropertiesJson);
-        // KML FF008000 is AABBGGRR â†’ #008000 (green)
+        // KML FF008000 is AABBGGRR → #008000 (green)
         Assert.Equal("#008000", props.RootElement.GetProperty("stroke").GetString());
         Assert.Equal(4, props.RootElement.GetProperty("stroke-width").GetDouble());
     }
@@ -67,7 +67,7 @@ public class KmlParserTests
 
     [Theory]
     [InlineData("FF008000", "#008000")]   // green trail
-    [InlineData("FFFF0000", "#0000FF")]   // KML blue channel first â†’ blue
+    [InlineData("FFFF0000", "#0000FF")]   // KML blue channel first → blue
     [InlineData("FF000000", "#000000")]
     [InlineData(null, null)]
     [InlineData("nothex!!", null)]

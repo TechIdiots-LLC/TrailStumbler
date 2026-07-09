@@ -4,7 +4,7 @@ namespace TrailStumbler.Core.Parsing;
 
 /// <summary>
 /// Cleans HTML junk out of feature descriptions. GPS Trail Masters KMLs (and many
-/// other KML exports) terminate every description with "&lt;br&gt;&lt;br&gt;" â€” the same
+/// other KML exports) terminate every description with "&lt;br&gt;&lt;br&gt;" — the same
 /// cleanup the user's atv-trail-map tippecanoe pipeline does with sed.
 /// </summary>
 public static partial class DescriptionCleaner

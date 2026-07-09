@@ -5,8 +5,8 @@ using TrailStumbler.Core.Services;
 namespace TrailStumbler.Services;
 
 /// <summary>
-/// Imports a GIS file: detect format â†’ parse â†’ split by geometry family â†’ insert.
-/// Splitting: a file containing â‰¥2 geometry families becomes one layer per family
+/// Imports a GIS file: detect format → parse → split by geometry family → insert.
+/// Splitting: a file containing ≥2 geometry families becomes one layer per family
 /// ("(trails)" / "(points)" / "(areas)") so e.g. GPS Trail Masters KMLs get
 /// separately toggleable trail and waypoint layers.
 /// </summary>
@@ -20,7 +20,7 @@ public class ImportService : IImportService
         string filePath, string displayName,
         IProgress<ImportProgress>? progress = null, CancellationToken ct = default)
     {
-        progress?.Report(new ImportProgress("Reading fileâ€¦", 0, 0));
+        progress?.Report(new ImportProgress("Reading file…", 0, 0));
 
         var format = FormatDetector.Detect(filePath);
         IGisParser parser = format switch
@@ -29,7 +29,8 @@ public class ImportService : IImportService
             GisFormat.Gpx => new GpxParser(),
             GisFormat.Kml => new KmlParser(),
             GisFormat.Kmz => new KmzParser(),
-            _ => throw new FormatException($"'{displayName}' is not a recognized GIS file (GeoJSON/GPX/KML/KMZ)."),
+            GisFormat.GarminImg => new ImgParser(),
+            _ => throw new FormatException($"'{displayName}' is not a recognized GIS file (GeoJSON/GPX/KML/KMZ/Garmin IMG)."),
         };
 
         List<ParsedFeature> parsed;
@@ -39,7 +40,7 @@ public class ImportService : IImportService
         if (parsed.Count == 0)
             throw new FormatException($"No mappable features found in '{displayName}'.");
 
-        progress?.Report(new ImportProgress("Savingâ€¦", 0, parsed.Count));
+        progress?.Report(new ImportProgress("Saving…", 0, parsed.Count));
 
         var baseName = Path.GetFileNameWithoutExtension(displayName);
         var buckets = parsed
@@ -98,7 +99,7 @@ public class ImportService : IImportService
             created.Add(layer);
 
             saved += features.Count;
-            progress?.Report(new ImportProgress("Savingâ€¦", saved, parsed.Count));
+            progress?.Report(new ImportProgress("Saving…", saved, parsed.Count));
         }
 
         return created;

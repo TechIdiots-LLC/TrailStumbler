@@ -55,7 +55,7 @@ public partial class MapViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(LabelsButtonText))]
     private bool _isLabelsVisible = true;
 
-    public string LabelsButtonText => _isLabelsVisible ? "Labels âœ“" : "Labels";
+    public string LabelsButtonText => _isLabelsVisible ? "Labels ✓" : "Labels";
 
     partial void OnIsLabelsVisibleChanged(bool value)
     {
@@ -66,11 +66,11 @@ public partial class MapViewModel : ObservableObject
     [RelayCommand]
     private void ToggleLabels() => IsLabelsVisible = !_isLabelsVisible;
 
-    // â”€â”€ Tap-to-inspect popup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Tap-to-inspect popup ──────────────────────────────────────────────────
     [ObservableProperty] private MapFeatureInfo? _selectedFeature;
     [ObservableProperty] private bool _isPopupVisible;
 
-    // â”€â”€ Route planner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Route planner ─────────────────────────────────────────────────────────
 
     private const string OriginSourceId  = "wp-origin-src";
     private const string OriginLayerId   = "wp-origin";
@@ -105,11 +105,11 @@ public partial class MapViewModel : ObservableObject
     [ObservableProperty] private bool _hasHighwayWarning;
     [ObservableProperty] private int _selectedProfileIndex;
 
-    // Route alternatives â€” populated after a successful Plan Route.
+    // Route alternatives — populated after a successful Plan Route.
     public ObservableCollection<RouteOptionViewModel> RouteOptions { get; } = [];
     public bool HasRouteOptions => RouteOptions.Count > 0;
 
-    // Number of alternative routes the user wants the engine to attempt (1â€“3).
+    // Number of alternative routes the user wants the engine to attempt (1–3).
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(RouteCountLabel))]
     private int _routeCount = 1;
@@ -125,21 +125,21 @@ public partial class MapViewModel : ObservableObject
 
     public string OriginLabel => _origin is null
         ? "Tap map to place A"
-        : $"{_origin.Value.Lat:F5}, {_origin.Value.Lon:F5}" + (_originSnapped ? " â—" : "");
+        : $"{_origin.Value.Lat:F5}, {_origin.Value.Lon:F5}" + (_originSnapped ? " ●" : "");
 
     public string DestinationLabel => _destination is null
         ? "Tap map to place B"
-        : $"{_destination.Value.Lat:F5}, {_destination.Value.Lon:F5}" + (_destinationSnapped ? " â—" : "");
+        : $"{_destination.Value.Lat:F5}, {_destination.Value.Lon:F5}" + (_destinationSnapped ? " ●" : "");
 
     // Profile list shown in the route planner picker.
     // HybridOffline variants appear first; they use MVT tiles from the basemap's
     // "openmaptiles" source so no external server is required at route-plan time.
     public static readonly string[] ProfileNames =
     [
-        "Hybrid moto (offline)",   // HybridOfflineMotorcycle â€” default
+        "Hybrid moto (offline)",   // HybridOfflineMotorcycle — default
         "Hybrid bike (offline)",   // HybridOfflineBicycle
         "Trails only",             // TrackOnly
-        "Hybrid moto (online)",    // HybridMotorcycle â€” Valhalla
+        "Hybrid moto (online)",    // HybridMotorcycle — Valhalla
         "Hybrid bike (online)",    // HybridBicycle
         "Auto (road)",
         "Motorcycle (road)",
@@ -200,7 +200,7 @@ public partial class MapViewModel : ObservableObject
         _ => $"trail-{layer.Id}-symbol",
     };
 
-    // â”€â”€ Controller wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Controller wiring ─────────────────────────────────────────────────────
 
     /// <summary>Called from MapPage.xaml.cs on every StyleLoaded. Re-adds all
     /// visible layers (runtime sources/layers are wiped on style reload) and
@@ -244,7 +244,7 @@ public partial class MapViewModel : ObservableObject
         }
     }
 
-    // â”€â”€ Layer add/remove â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Layer add/remove ──────────────────────────────────────────────────────
 
     private async Task AddLayerToMapAsync(MapLayer layer)
     {
@@ -296,7 +296,7 @@ public partial class MapViewModel : ObservableObject
         _shownLayers.RemoveAll(l => l.Id == layer.Id);
     }
 
-    // â”€â”€ Recording â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Recording ─────────────────────────────────────────────────────────────
 
     [RelayCommand]
     private async Task ToggleRecordingAsync()
@@ -314,7 +314,7 @@ public partial class MapViewModel : ObservableObject
             var name = $"Track {DateTime.Now:yyyy-MM-dd HH:mm}";
             await _recorder.StartAsync(name);
             IsRecording = true;
-            RecordingStatus = "Recordingâ€¦ 0 pts";
+            RecordingStatus = "Recording… 0 pts";
         }
         catch (Exception ex)
         {
@@ -349,11 +349,11 @@ public partial class MapViewModel : ObservableObject
         }
     }
 
-    // Called by ITrackRecorderService.TrackUpdated on the main thread, throttled â‰¥2 s.
+    // Called by ITrackRecorderService.TrackUpdated on the main thread, throttled ≥2 s.
     private void OnTrackUpdated(object? sender, IReadOnlyList<RecordingPoint> points)
     {
         _liveRecordingPoints = points;
-        RecordingStatus = $"Recordingâ€¦ {points.Count} pts";
+        RecordingStatus = $"Recording… {points.Count} pts";
         if (points.Count >= 2)
             UpdateRecordingLineOnMap(points);
     }
@@ -414,9 +414,9 @@ public partial class MapViewModel : ObservableObject
         return sb.ToString();
     }
 
-    // â”€â”€ Paint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Paint ─────────────────────────────────────────────────────────────────
     // Trail lines honor a per-feature simplestyle "stroke" (KML style colors carried
-    // through import) and fall back to the layer color â€” same expression the user's
+    // through import) and fall back to the layer color — same expression the user's
     // atv-trail-map web page uses.
 
     private Dictionary<string, object?> LinePaint(string colorHex, double width = 3.0)
@@ -491,13 +491,13 @@ public partial class MapViewModel : ObservableObject
         ["fill-opacity"] = 0.25,
     };
 
-    // â”€â”€ Called from LayersViewModel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Called from LayersViewModel ───────────────────────────────────────────
 
     private static bool IsPersistentLayerId(string id)
         => id == RecordingLayerId || id == OriginLayerId || id == DestLayerId;
 
     /// <summary>Re-adds all shown layers with the current paint settings (e.g. after label toggle).
-    /// Operates on the already-loaded layer list â€” no DB round-trip needed.</summary>
+    /// Operates on the already-loaded layer list — no DB round-trip needed.</summary>
     private async Task RefreshMapLayersAsync()
     {
         if (_controller is null) return;
@@ -525,7 +525,7 @@ public partial class MapViewModel : ObservableObject
     }
 
     /// <summary>Apply a visibility toggle to the live map (persistence is the
-    /// caller's job). No-op without a live controller â€” the next style load
+    /// caller's job). No-op without a live controller — the next style load
     /// reconciles from the DB.</summary>
     public async Task SetLayerVisibilityAsync(MapLayer layer, bool visible)
     {
@@ -552,7 +552,7 @@ public partial class MapViewModel : ObservableObject
         TryApplyPendingFit();
     }
 
-    /// <summary>Also called from MapPage.OnAppearing â€” a queued fit must apply when
+    /// <summary>Also called from MapPage.OnAppearing — a queued fit must apply when
     /// the page comes back on screen with an already-loaded style.</summary>
     public void TryApplyPendingFit()
     {
@@ -584,7 +584,7 @@ public partial class MapViewModel : ObservableObject
         await AddLayerToMapAsync(layer);
     }
 
-    // â”€â”€ Tap-to-inspect â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Tap-to-inspect ────────────────────────────────────────────────────────
 
     /// <summary>Called from MapPage on MapClick. Hit-tests shown layers (points
     /// before lines/areas, then newest first), resolves the hit's "_fid" back to
@@ -621,14 +621,14 @@ public partial class MapViewModel : ObservableObject
             return;
         }
 
-        // Nothing under the tap â€” dismiss any open popup.
+        // Nothing under the tap — dismiss any open popup.
         IsPopupVisible = false;
     }
 
     [RelayCommand]
     private void ClosePopup() => IsPopupVisible = false;
 
-    // â”€â”€ Route planner commands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Route planner commands ────────────────────────────────────────────────
 
     /// <summary>Enter origin-placement mode; the next map tap will drop the A pin.</summary>
     [RelayCommand]
@@ -794,16 +794,16 @@ public partial class MapViewModel : ObservableObject
 
         if (needsMvt && _mvtTileJsonUrl is null)
         {
-            RouteStatusMessage = "Waiting for map tile sourceâ€¦";
+            RouteStatusMessage = "Waiting for map tile source…";
             await FetchMvtTileUrlAsync();
             if (_mvtTileJsonUrl is null)
             {
-                RouteStatusMessage = "Offline routing unavailable â€” no vector tile source found";
+                RouteStatusMessage = "Offline routing unavailable — no vector tile source found";
                 return;
             }
         }
 
-        RouteStatusMessage = "Calculating routeâ€¦";
+        RouteStatusMessage = "Calculating route…";
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(90));
@@ -849,7 +849,7 @@ public partial class MapViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
-            RouteStatusMessage = "Route timed out â€” try a shorter distance or different profile";
+            RouteStatusMessage = "Route timed out — try a shorter distance or different profile";
         }
         catch (Exception ex)
         {
@@ -922,7 +922,7 @@ public partial class MapViewModel : ObservableObject
 
     private void OnAnnouncementNeeded(object? sender, ManeuverAnnouncementEventArgs e)
     {
-        // TTS phase 2 â€” log for now
+        // TTS phase 2 — log for now
         Debug.WriteLine($"[Navigation] {e.Step.Instruction} in {e.DistanceMeters:F0} m");
     }
 

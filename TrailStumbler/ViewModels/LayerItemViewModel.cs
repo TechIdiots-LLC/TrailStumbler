@@ -33,7 +33,7 @@ public partial class LayerItemViewModel : ObservableObject
                 GeometryFamily.Polygon => "areas",
                 _ => "points",
             };
-            return $"{Layer.FeatureCount} {kind} â€¢ {Layer.SourceFileName}";
+            return $"{Layer.FeatureCount} {kind} • {Layer.SourceFileName}";
         }
     }
 

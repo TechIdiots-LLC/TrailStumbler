@@ -76,7 +76,7 @@ public class GeoJsonParser : IGisParser
         if (!pf.Bbox.IsEmpty) results.Add(pf);
     }
 
-    /// <summary>Recursively accumulate every [lon, lat, â€¦] position into the bbox.</summary>
+    /// <summary>Recursively accumulate every [lon, lat, …] position into the bbox.</summary>
     internal static void WalkCoordinates(JsonElement coords, ParsedFeature pf)
     {
         if (coords.ValueKind != JsonValueKind.Array || coords.GetArrayLength() == 0) return;

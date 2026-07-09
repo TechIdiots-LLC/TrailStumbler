@@ -23,7 +23,7 @@
         <ScrollView Grid.Row="1">
             <VerticalStackLayout>
 
-                <!-- â”€â”€ IMPORTED LAYERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                <!-- ── IMPORTED LAYERS ─────────────────────────────────────── -->
                 <Label Text="IMPORTED LAYERS"
                        FontSize="11" FontAttributes="Bold"
                        TextColor="Gray"
@@ -49,14 +49,14 @@
                                     </SwipeItems>
                                 </SwipeView.RightItems>
 
-                                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto"
+                                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto"
                                       Padding="10,8" ColumnSpacing="8">
 
                                     <CheckBox Grid.Column="0"
                                               IsChecked="{Binding IsVisible, Mode=TwoWay}"
                                               VerticalOptions="Center" />
 
-                                    <!-- Color swatch â€” tap to change -->
+                                    <!-- Color swatch — tap to change -->
                                     <BoxView Grid.Column="1"
                                              WidthRequest="16" HeightRequest="16"
                                              CornerRadius="8"
@@ -85,7 +85,7 @@
 
                                     <!-- Export button -->
                                     <Button Grid.Column="4"
-                                            Text="ðŸ“¤"
+                                            Text="📤"
                                             FontSize="16"
                                             Padding="8,2"
                                             BackgroundColor="Transparent"
@@ -93,20 +93,29 @@
                                             ToolTipProperties.Text="Export layer" />
 
                                     <Button Grid.Column="5"
-                                            Text="âŒ–"
+                                            Text="⌖"
                                             FontSize="20"
                                             Padding="10,2"
                                             BackgroundColor="Transparent"
                                             TextColor="#1565C0"
                                             Command="{Binding ZoomCommand}"
                                             ToolTipProperties.Text="Zoom to layer" />
+
+                                    <Button Grid.Column="6"
+                                            Text="🗑"
+                                            FontSize="16"
+                                            Padding="8,2"
+                                            BackgroundColor="Transparent"
+                                            TextColor="#D32F2F"
+                                            Command="{Binding DeleteCommand}"
+                                            ToolTipProperties.Text="Delete layer" />
                                 </Grid>
                             </SwipeView>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>
 
-                <!-- â”€â”€ MY RECORDINGS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+                <!-- ── MY RECORDINGS ──────────────────────────────────────── -->
                 <Label Text="MY RECORDINGS"
                        FontSize="11" FontAttributes="Bold"
                        TextColor="Gray"
@@ -128,7 +137,7 @@
                                     </SwipeItems>
                                 </SwipeView.RightItems>
 
-                                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto"
+                                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto"
                                       Padding="10,8" ColumnSpacing="8">
 
                                     <CheckBox Grid.Column="0"
@@ -149,7 +158,7 @@
 
                                     <!-- Export GPX -->
                                     <Button Grid.Column="3"
-                                            Text="ðŸ“¤"
+                                            Text="📤"
                                             FontSize="16"
                                             Padding="8,2"
                                             BackgroundColor="Transparent"
@@ -157,13 +166,22 @@
                                             ToolTipProperties.Text="Export GPX" />
 
                                     <Button Grid.Column="4"
-                                            Text="âŒ–"
+                                            Text="⌖"
                                             FontSize="20"
                                             Padding="10,2"
                                             BackgroundColor="Transparent"
                                             TextColor="#1565C0"
                                             Command="{Binding ZoomCommand}"
                                             ToolTipProperties.Text="Zoom to track" />
+
+                                    <Button Grid.Column="5"
+                                            Text="🗑"
+                                            FontSize="16"
+                                            Padding="8,2"
+                                            BackgroundColor="Transparent"
+                                            TextColor="#D32F2F"
+                                            Command="{Binding DeleteCommand}"
+                                            ToolTipProperties.Text="Delete recording" />
                                 </Grid>
                             </SwipeView>
                         </DataTemplate>

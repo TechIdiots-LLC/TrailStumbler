@@ -45,7 +45,7 @@
                        TextColor="Black"
                        FontAttributes="Bold" FontSize="16" />
                 <Button Grid.Row="0" Grid.Column="1"
-                        Text="âœ•"
+                        Text="✕"
                         Command="{Binding ClosePopupCommand}"
                         BackgroundColor="Transparent" TextColor="Gray"
                         Padding="6,0" FontSize="14" />
@@ -68,14 +68,14 @@
             </Grid>
         </Border>
 
-        <!-- Navigation panel â€” floats at top while navigating. -->
+        <!-- Navigation panel — floats at top while navigating. -->
         <routing:NavigationPanel
             x:Name="NavPanel"
             Grid.Row="0"
             VerticalOptions="Start"
             IsVisible="{Binding IsNavigating}" />
 
-        <!-- "Placing pin" tap-here banner â€” appears below NavPanel. -->
+        <!-- "Placing pin" tap-here banner — appears below NavPanel. -->
         <Border Grid.Row="0"
                 VerticalOptions="Start"
                 HorizontalOptions="Center"
@@ -108,10 +108,10 @@
 
             <Grid RowDefinitions="Auto,*">
 
-                <!-- Drag handle â€” tapping toggles expand/collapse. -->
+                <!-- Drag handle — tapping toggles expand/collapse. -->
                 <Button x:Name="SheetHandle"
                         Grid.Row="0"
-                        Text="âŒƒ"
+                        Text="⌃"
                         FontSize="16"
                         TextColor="#999999"
                         BackgroundColor="Transparent"
@@ -119,7 +119,7 @@
                         Padding="0"
                         Clicked="OnSheetHandleClicked" />
 
-                <!-- Expanded content â€” toggled IsVisible from code-behind. -->
+                <!-- Expanded content — toggled IsVisible from code-behind. -->
                 <Grid x:Name="SheetContent"
                       Grid.Row="1"
                       RowDefinitions="36,36,36,36,Auto,Auto,Auto"
@@ -127,7 +127,7 @@
                       Padding="14,0,14,10"
                       IsVisible="False">
 
-                    <!-- A (origin) row â€” blue border highlight when IsPlacingOrigin. -->
+                    <!-- A (origin) row — blue border highlight when IsPlacingOrigin. -->
                     <Border Grid.Row="0"
                             Padding="10,6"
                             StrokeShape="RoundRectangle 8"
@@ -162,7 +162,7 @@
                         </Grid>
                     </Border>
 
-                    <!-- B (destination) row â€” blue border highlight when IsPlacingDestination. -->
+                    <!-- B (destination) row — blue border highlight when IsPlacingDestination. -->
                     <Border Grid.Row="1"
                             Padding="10,6"
                             StrokeShape="RoundRectangle 8"
@@ -238,7 +238,7 @@
                                 HeightRequest="36" />
                     </Grid>
 
-                    <!-- Route count stepper â€” visible only when not navigating -->
+                    <!-- Route count stepper — visible only when not navigating -->
                     <Grid Grid.Row="4"
                           ColumnDefinitions="*,Auto,Auto,Auto"
                           ColumnSpacing="6"
@@ -249,7 +249,7 @@
                                TextColor="#333333"
                                VerticalOptions="Center" />
                         <Button Grid.Column="1"
-                                Text="âˆ’"
+                                Text="−"
                                 Command="{Binding DecreaseRouteCountCommand}"
                                 BackgroundColor="#E0E0E0"
                                 TextColor="#333333"
@@ -270,7 +270,7 @@
                                 Padding="0" />
                     </Grid>
 
-                    <!-- Route alternative cards â€” shown after a successful Plan Route -->
+                    <!-- Route alternative cards — shown after a successful Plan Route -->
                     <VerticalStackLayout Grid.Row="5"
                                          Spacing="6"
                                          IsVisible="{Binding HasRouteOptions}">

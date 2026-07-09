@@ -19,7 +19,7 @@ public partial class RouteOptionViewModel : ObservableObject
     {
         Index = index;
         Route = route;
-        Label = $"Route {index + 1}  Â·  {route.Distance / 1000.0:F1} km  Â·  {FormatDuration(route.Duration)}";
+        Label = $"Route {index + 1}  ·  {route.Distance / 1000.0:F1} km  ·  {FormatDuration(route.Duration)}";
         SelectCommand = new RelayCommand(() => onSelect(index));
     }
 

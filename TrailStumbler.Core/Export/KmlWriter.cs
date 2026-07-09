@@ -117,7 +117,7 @@ public static class KmlWriter
                 await w.WriteStartElementAsync(null, "Polygon", KmlNs);
                 await w.WriteStartElementAsync(null, "outerBoundaryIs", KmlNs);
                 await w.WriteStartElementAsync(null, "LinearRing", KmlNs);
-                // CoordinatesJson for Polygon is [[ring], ...] â€” take first ring
+                // CoordinatesJson for Polygon is [[ring], ...] — take first ring
                 var ring = ExtractFirstRing(feature.CoordinatesJson);
                 await w.WriteElementStringAsync(null, "coordinates", KmlNs,
                     CoordArrayToKml(ring, isPoint: false));
@@ -167,7 +167,7 @@ public static class KmlWriter
         }
     }
 
-    // For Polygon: CoordinatesJson is [[[lon,lat],...], ...] â€” extract outer ring.
+    // For Polygon: CoordinatesJson is [[[lon,lat],...], ...] — extract outer ring.
     private static string ExtractFirstRing(string coordsJson)
     {
         try
@@ -189,7 +189,7 @@ public static class KmlWriter
         catch { return null; }
     }
 
-    // #RRGGBB â†’ FFBBGGRR  (KML: alpha=FF, byte order reversed)
+    // #RRGGBB → FFBBGGRR  (KML: alpha=FF, byte order reversed)
     private static string HexToKml(string hex)
     {
         hex = hex.TrimStart('#');
@@ -198,7 +198,7 @@ public static class KmlWriter
         return "FFFFFFFF";
     }
 
-    // #RRGGBB â†’ BBGGRR (without alpha prefix)
+    // #RRGGBB → BBGGRR (without alpha prefix)
     private static string RgbOnly(string hex)
     {
         hex = hex.TrimStart('#');

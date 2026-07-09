@@ -12,7 +12,7 @@
         <Picker ItemsSource="{Binding StyleNames}"
                 SelectedItem="{Binding SelectedStyleName, Mode=TwoWay}" />
 
-        <Entry Placeholder="https://â€¦/style.json"
+        <Entry Placeholder="https://…/style.json"
                Text="{Binding CustomStyleUrl, Mode=TwoWay}"
                IsVisible="{Binding IsCustom}" />
 

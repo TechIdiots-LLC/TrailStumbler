@@ -5,8 +5,8 @@ using Android.OS;
 namespace TrailStumbler;
 
 /// <summary>
-/// Foreground service that shows the persistent "Recording trackâ€¦" notification on Android.
-/// The service itself doesn't handle GPS â€” that's done by MAUI's Geolocation listener.
+/// Foreground service that shows the persistent "Recording track…" notification on Android.
+/// The service itself doesn't handle GPS — that's done by MAUI's Geolocation listener.
 /// Started/stopped by TrackRecorderService.Android.cs.
 /// </summary>
 [Service(ForegroundServiceType = Android.Content.PM.ForegroundService.TypeLocation, Exported = false)]
@@ -23,7 +23,7 @@ public class TrackRecordingForegroundService : Service
 
         var notification = new Notification.Builder(this, ChannelId)
             .SetContentTitle("TrailStumbler")
-            .SetContentText("Recording trackâ€¦")
+            .SetContentText("Recording track…")
             .SetSmallIcon(Android.Resource.Drawable.IcMenuMapmode)
             .SetOngoing(true)
             .Build()!;

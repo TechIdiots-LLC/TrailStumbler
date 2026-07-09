@@ -27,7 +27,7 @@ public static class MauiProgram
 
         var services = builder.Services;
 
-        // â”€â”€ Services â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Services ─────────────────────────────────────────────────────────
         // SqliteLayerRepository implements both ILayerRepository and IRouteDataSource;
         // register the concrete type so both interfaces share the same singleton.
         services.AddSingleton<SqliteLayerRepository>();
@@ -39,17 +39,17 @@ public static class MauiProgram
         services.AddSingleton<ExportService>();
         services.AddSingleton<SqliteTileCacheProvider>();
 
-        // â”€â”€ Routing plugin (RouteOverlay singleton + NavigationSession transient) â”€â”€
+        // ── Routing plugin (RouteOverlay singleton + NavigationSession transient) ──
         builder.UseMapLibreRouting(); // IRouteDataSource already registered above
 
-        // â”€â”€ ViewModels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── ViewModels ───────────────────────────────────────────────────────
         // MapViewModel is a singleton so LayersViewModel can drive the live map
         // (toggle/zoom) even while MapPage isn't instantiated.
         services.AddSingleton<MapViewModel>();
         services.AddSingleton<LayersViewModel>();
         services.AddTransient<SettingsViewModel>();
 
-        // â”€â”€ Shell + Pages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Shell + Pages ────────────────────────────────────────────────────
         services.AddTransient<AppShell>();
         services.AddTransient<LayersPage>();
         services.AddTransient<MapPage>();

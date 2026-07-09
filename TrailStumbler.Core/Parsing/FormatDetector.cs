@@ -2,7 +2,7 @@
 
 namespace TrailStumbler.Core.Parsing;
 
-public enum GisFormat { Unknown, GeoJson, Kml, Kmz, Gpx }
+public enum GisFormat { Unknown, GeoJson, Kml, Kmz, Gpx, GarminImg }
 
 /// <summary>Detects the GIS format of a file from its extension, falling back to
 /// content sniffing (Android file pickers often lose the real MIME/extension).</summary>
@@ -16,6 +16,7 @@ public static class FormatDetector
             ".kml" => GisFormat.Kml,
             ".kmz" => GisFormat.Kmz,
             ".gpx" => GisFormat.Gpx,
+            ".img" => GisFormat.GarminImg,
             _ => GisFormat.Unknown,
         };
         if (byExt != GisFormat.Unknown) return byExt;
@@ -24,13 +25,20 @@ public static class FormatDetector
         return Sniff(stream);
     }
 
+    // "DSKIMG" — the disk-image signature at offset 0x10 of a classic Garmin .img.
+    private static ReadOnlySpan<byte> GarminMagic => "DSKIMG"u8;
+    private const int GarminMagicOffset = 0x10;
+
     /// <summary>Sniff the format from leading bytes. Leaves the stream position unspecified.</summary>
     public static GisFormat Sniff(Stream stream)
     {
-        Span<byte> head = stackalloc byte[4];
+        Span<byte> head = stackalloc byte[GarminMagicOffset + 6];
         int n = stream.Read(head);
         if (n >= 4 && head[0] == 0x50 && head[1] == 0x4B && head[2] == 0x03 && head[3] == 0x04)
             return GisFormat.Kmz;   // zip magic "PK\x03\x04"
+        if (n >= GarminMagicOffset + 6 &&
+            head.Slice(GarminMagicOffset, 6).SequenceEqual(GarminMagic))
+            return GisFormat.GarminImg;
 
         stream.Position = 0;
         using var reader = new StreamReader(stream, leaveOpen: true);

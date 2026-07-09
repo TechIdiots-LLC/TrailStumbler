@@ -20,7 +20,7 @@ public interface ILayerRepository
     /// <summary>Build the layer's FeatureCollection GeoJSON string.</summary>
     Task<string> BuildLayerGeoJsonAsync(int layerId);
 
-    // â”€â”€ Recording session management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Recording session management ─────────────────────────────────────────
 
     /// <summary>Returns an unclosed session if the app crashed mid-recording.</summary>
     Task<RecordingSession?> GetOpenRecordingSessionAsync();

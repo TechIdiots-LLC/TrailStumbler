@@ -93,7 +93,7 @@ public partial class MapPage : ContentPage
         if (ctrl is not null)
             _vm.OnMapControllerReady(ctrl);
         else
-            Log("Map.StyleLoaded: controller was null â€” skipping OnMapControllerReady");
+            Log("Map.StyleLoaded: controller was null — skipping OnMapControllerReady");
     }
 
     protected override void OnAppearing()
@@ -119,10 +119,10 @@ public partial class MapPage : ContentPage
         Log($"WATCHDOG t=5s mapReady={_mapReadyFired} styleLoaded={_styleLoadedFired}");
         await Task.Delay(TimeSpan.FromSeconds(10));
         if (!_mapReadyFired)
-            Log("WATCHDOG: MapReady never fired â€” handler/CreatePlatformView likely failed " +
+            Log("WATCHDOG: MapReady never fired — handler/CreatePlatformView likely failed " +
                 "(check MauiProgram registered MapLibreMapHandler).");
         else if (!_styleLoadedFired)
-            Log($"WATCHDOG: MapReady fired but StyleLoaded did not â€” style URL load failed " +
+            Log($"WATCHDOG: MapReady fired but StyleLoaded did not — style URL load failed " +
                 $"(URL='{_vm.StyleUrl}'). Check network/tile server.");
     }
 
@@ -148,7 +148,7 @@ public partial class MapPage : ContentPage
     private double ComputeExpandedH()
         => SheetBaseExpandedH + _vm.RouteOptions.Count * SheetRouteCardH;
 
-    // â”€â”€ Sheet expand / collapse â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Sheet expand / collapse ───────────────────────────────────────────────
 
     private void OnSheetHandleClicked(object? sender, EventArgs e)
     {
@@ -158,7 +158,7 @@ public partial class MapPage : ContentPage
     private void ExpandSheet()
     {
         _sheetExpanded = true;
-        SheetHandle.Text = "âŒ„";
+        SheetHandle.Text = "⌄";
         SheetContent.IsVisible = true;
         AnimateSheet(ComputeExpandedH());
     }
@@ -166,7 +166,7 @@ public partial class MapPage : ContentPage
     private void CollapseSheet()
     {
         _sheetExpanded = false;
-        SheetHandle.Text = "âŒƒ";
+        SheetHandle.Text = "⌃";
         SheetContent.IsVisible = false;
         AnimateSheet(SheetCollapsedH);
     }

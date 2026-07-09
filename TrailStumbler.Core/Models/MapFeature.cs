@@ -11,9 +11,9 @@ public class MapFeature
     [PrimaryKey, AutoIncrement] public long Id { get; set; }
     [Indexed] public int LayerId { get; set; }
 
-    public string GeometryType { get; set; } = "";    // Point|LineString|MultiLineString|Polygon|â€¦
+    public string GeometryType { get; set; } = "";    // Point|LineString|MultiLineString|Polygon|…
     public string CoordinatesJson { get; set; } = ""; // raw coordinates array text, verbatim
-    public string PropertiesJson { get; set; } = "{}";// cleaned props (simplestyle, coordTimes, â€¦)
+    public string PropertiesJson { get; set; } = "{}";// cleaned props (simplestyle, coordTimes, …)
 
     // Denormalized for the tap popup without parsing PropertiesJson.
     public string Name { get; set; } = "";

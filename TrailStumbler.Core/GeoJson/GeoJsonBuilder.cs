@@ -38,12 +38,12 @@ public static class GeoJsonBuilder
         return sb.ToString();
     }
 
-    /// <summary>Append the stored properties object after "_fid":N â€” i.e. the object's
+    /// <summary>Append the stored properties object after "_fid":N — i.e. the object's
     /// members (if any) preceded by a comma, then the closing brace.</summary>
     private static void AppendPropertiesTail(StringBuilder sb, string propertiesJson)
     {
         var trimmed = propertiesJson.AsSpan().Trim();
-        // "{}", "{ }", or malformed â†’ just close the properties object.
+        // "{}", "{ }", or malformed → just close the properties object.
         if (trimmed.Length < 3 || trimmed[0] != '{' || trimmed[1..^1].Trim().Length == 0)
         {
             sb.Append('}');

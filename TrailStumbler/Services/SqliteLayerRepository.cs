@@ -103,7 +103,7 @@ public class SqliteLayerRepository : ILayerRepository, IRouteDataSource
         return GeoJsonBuilder.BuildFeatureCollection(features);
     }
 
-    // â”€â”€ Recording session management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Recording session management ─────────────────────────────────────────
 
     public async Task<RecordingSession?> GetOpenRecordingSessionAsync()
     {
@@ -250,7 +250,7 @@ public class SqliteLayerRepository : ILayerRepository, IRouteDataSource
             .ToListAsync();
     }
 
-    // â”€â”€ IRouteDataSource â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── IRouteDataSource ─────────────────────────────────────────────────────
 
     public async Task<IReadOnlyList<TrackFeature>> GetRoutableTrackFeaturesAsync()
     {
