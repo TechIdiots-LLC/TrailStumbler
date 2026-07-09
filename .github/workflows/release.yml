@@ -52,11 +52,15 @@ jobs:
       release_type: ${{ steps.check.outputs.release_type }}
 
   build-windows:
-    name: Build Windows release
+    name: Build Windows release (${{ matrix.rid }})
     runs-on: windows-latest
     needs: release-check
     if: ${{ needs.release-check.outputs.published == 'false' }}
     environment: release
+    strategy:
+      fail-fast: false
+      matrix:
+        rid: [win-x64, win-arm64]
 
     steps:
       - uses: actions/checkout@v4
@@ -69,30 +73,42 @@ jobs:
       - name: Install MAUI Windows workload
         run: dotnet workload install maui-windows
 
-      - name: Restore
-        run: dotnet restore TrailStumbler/TrailStumbler.csproj
-
-      - name: Publish self-contained Windows app
+      - name: Publish self-contained Windows app (${{ matrix.rid }})
+        # -r ${{ matrix.rid }} -p:UseMonoRuntime=false: this multi-target MAUI csproj
+        # otherwise resolves a Mono runtime pack (Microsoft.NETCore.App.Runtime.Mono.<rid>)
+        # for the Windows head, which doesn't exist (NU1101); force the CoreCLR pack. An
+        # explicit RID is required to cross-build win-arm64 on the x64 runner. No separate
+        # restore / --no-restore (would cause NETSDK1112) — publish restores in one shot.
+        #
+        # --self-contained + -p:WindowsAppSDKSelfContained=true: bundle both the .NET
+        # runtime AND the Windows App SDK runtime so users need nothing pre-installed
+        # (matches VistumblerCS's self-contained releases). NOTE: no PublishSingleFile —
+        # WinUI 3 / Windows App SDK apps don't support single-file publish, so the output
+        # is a folder of DLLs (zipped below) rather than one exe.
         run: |
           dotnet publish TrailStumbler/TrailStumbler.csproj `
             -f net10.0-windows10.0.19041.0 `
             --configuration Release `
-            --no-restore `
-            --output ./publish/windows
+            -r ${{ matrix.rid }} `
+            --self-contained true `
+            -p:WindowsPackageType=None `
+            -p:UseMonoRuntime=false `
+            -p:WindowsAppSDKSelfContained=true `
+            --output ./publish/${{ matrix.rid }}
 
-      - name: Package Windows release artifact
+      - name: Package Windows release artifact (${{ matrix.rid }})
         shell: pwsh
         run: |
           $version = "${{ needs.release-check.outputs.version }}"
           Compress-Archive `
-            -Path "./publish/windows/*" `
-            -DestinationPath "./TrailStumbler-v${version}-win-x64.zip"
+            -Path "./publish/${{ matrix.rid }}/*" `
+            -DestinationPath "./TrailStumbler-v${version}-${{ matrix.rid }}.zip"
 
-      - name: Upload Windows artifact
+      - name: Upload Windows artifact (${{ matrix.rid }})
         uses: actions/upload-artifact@v4
         with:
-          name: release-windows
-          path: TrailStumbler-v${{ needs.release-check.outputs.version }}-win-x64.zip
+          name: release-windows-${{ matrix.rid }}
+          path: TrailStumbler-v${{ needs.release-check.outputs.version }}-${{ matrix.rid }}.zip
           retention-days: 7
 
   build-android:
@@ -113,15 +129,14 @@ jobs:
       - name: Install MAUI Android workload
         run: dotnet workload install maui-android
 
-      - name: Restore
-        run: dotnet restore TrailStumbler/TrailStumbler.csproj
-
       - name: Publish Android APK
+        # No separate restore step; EnableWindowsTargeting=true so restore can evaluate
+        # the csproj's Windows TFM on Linux without NETSDK1100 (see CI android job).
         run: |
           dotnet publish TrailStumbler/TrailStumbler.csproj \
             -f net10.0-android36.0 \
             --configuration Release \
-            --no-restore
+            -p:EnableWindowsTargeting=true
 
       - name: Locate and rename APK
         shell: bash
@@ -179,7 +194,7 @@ jobs:
           tag:        v${{ needs.release-check.outputs.version }}
           name:       v${{ needs.release-check.outputs.version }}
           bodyFile:   changelog_for_version.md
-          artifacts:  "./artifacts/TrailStumbler-v${{ needs.release-check.outputs.version }}-win-x64.zip,./artifacts/TrailStumbler-v${{ needs.release-check.outputs.version }}.apk"
+          artifacts:  "./artifacts/TrailStumbler-v${{ needs.release-check.outputs.version }}-win-x64.zip,./artifacts/TrailStumbler-v${{ needs.release-check.outputs.version }}-win-arm64.zip,./artifacts/TrailStumbler-v${{ needs.release-check.outputs.version }}.apk"
           prerelease: ${{ steps.flags.outputs.prerelease }}
           allowUpdates: true
           draft: false

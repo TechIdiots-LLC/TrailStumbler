@@ -11,6 +11,7 @@
 ## 0.1.1
 ### ✨ Features and improvements
 - **Updated map renderer to MapLibreNative.Maui.Handlers 4.1.3** (from a 4.1.0 dev build) — now consumed as the released package from nuget.org.
+- **Self-contained Windows releases, now with ARM64** — Windows releases ship a native `win-arm64` build alongside `win-x64`, and both are self-contained: the .NET runtime and the Windows App SDK runtime are bundled, so users don't need to install anything first. ARM64 devices run the app and its native map engine (`mln-cabi.dll`) natively instead of under x64 emulation.
 
 ### 🐞 Bug fixes
 - **MAUI Windows: double-tapping the nav/GPS/d-pad overlay buttons no longer leaks through to the map** — via the renderer bump to 4.1.2, the overlay buttons now handle `DoubleTapped` (previously only `Tapped`), so the second click of a fast double-click no longer bubbles past the button and zooms/pans the map behind it.

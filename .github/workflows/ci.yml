@@ -30,8 +30,12 @@ jobs:
         run: dotnet test TrailStumbler.Core.Tests/TrailStumbler.Core.Tests.csproj --configuration Release --no-restore --verbosity normal
 
   build-windows:
-    name: Build Windows
+    name: Build Windows (${{ matrix.rid }})
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rid: [win-x64, win-arm64]
     steps:
       - uses: actions/checkout@v4
 
@@ -43,25 +47,28 @@ jobs:
       - name: Install MAUI Windows workload
         run: dotnet workload install maui-windows
 
-      - name: Restore
-        run: dotnet restore TrailStumbler/TrailStumbler.csproj
-
-      - name: Build
-        run: dotnet build TrailStumbler/TrailStumbler.csproj -f net10.0-windows10.0.19041.0 --configuration Release --no-restore
-
-      - name: Publish
+      - name: Publish (${{ matrix.rid }})
+        # No separate `dotnet restore` / `--no-restore`: a generic RID-less restore
+        # doesn't pull the runtime pack this RID-aware publish needs, causing
+        # NETSDK1112. Let publish do its own restore in one shot.
+        # -p:UseMonoRuntime=false: this multi-target MAUI csproj otherwise resolves a
+        # Mono runtime pack (Microsoft.NETCore.App.Runtime.Mono.${{ matrix.rid }}) for
+        # the Windows head, which doesn't exist (NU1101) — force the CoreCLR pack so an
+        # explicit RID (required to cross-build win-arm64 on an x64 runner) resolves.
         run: |
           dotnet publish TrailStumbler/TrailStumbler.csproj `
             -f net10.0-windows10.0.19041.0 `
             --configuration Release `
-            --no-restore `
-            --output ./publish/windows
+            -r ${{ matrix.rid }} `
+            -p:WindowsPackageType=None `
+            -p:UseMonoRuntime=false `
+            --output ./publish/${{ matrix.rid }}
 
-      - name: Upload CI artifact
+      - name: Upload CI artifact (${{ matrix.rid }})
         uses: actions/upload-artifact@v4
         with:
-          name: TrailStumbler-ci-windows-${{ github.sha }}
-          path: ./publish/windows/
+          name: TrailStumbler-ci-windows-${{ matrix.rid }}-${{ github.sha }}
+          path: ./publish/${{ matrix.rid }}/
           retention-days: 7
 
   build-android:
@@ -78,11 +85,16 @@ jobs:
       - name: Install MAUI Android workload
         run: dotnet workload install maui-android
 
-      - name: Restore
-        run: dotnet restore TrailStumbler/TrailStumbler.csproj
-
       - name: Build
-        run: dotnet build TrailStumbler/TrailStumbler.csproj -f net10.0-android36.0 --configuration Release --no-restore
+        # No separate restore step (see Windows job). EnableWindowsTargeting=true:
+        # the csproj also targets net10.0-windows10.0.19041.0, and restore evaluates
+        # all TargetFrameworks even when -f picks just one — without it, restoring the
+        # Windows TFM on Linux fails with NETSDK1100.
+        run: |
+          dotnet build TrailStumbler/TrailStumbler.csproj \
+            -f net10.0-android36.0 \
+            --configuration Release \
+            -p:EnableWindowsTargeting=true
 
       - name: Upload CI artifact
         uses: actions/upload-artifact@v4
