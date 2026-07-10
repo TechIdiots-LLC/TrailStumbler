@@ -8,6 +8,15 @@
 - _...Add new stuff here..._
 
 
+## 0.1.2
+### ✨ Features and improvements
+- **Android touch gestures on the map** — via the renderer bump to MapLibreNative.Maui.Handlers 4.2.0, two-finger pinch-zoom, rotate and tilt now work on Android (previously only the on-screen zoom/rotate buttons did).
+
+### 🐞 Bug fixes
+- **Android: the map no longer crashes the app on open** — the renderer bump to 4.2.0 fixes a native stack-overflow crash on Android when the map is first shown.
+- **Android: several map rendering bugs fixed** — also via 4.2.0: polygon fills no longer show a checkerboard pattern and tiles no longer show white seams; the map no longer stretches/blanks after rotating the device; panning tracks the finger correctly; and tiles now refresh when zooming into detailed (color-relief/hillshade/vector) styles instead of staying stuck on lower-zoom content.
+
+
 ## 0.1.1
 ### ✨ Features and improvements
 - **Updated map renderer to MapLibreNative.Maui.Handlers 4.1.3** (from a 4.1.0 dev build) — now consumed as the released package from nuget.org.
