@@ -8,6 +8,11 @@
 - _...Add new stuff here..._
 
 
+## 0.1.3
+### 🐞 Bug fixes
+- **Attribution banner no longer re-expands on every runtime source refresh** — updated the map renderer to MapLibreNative.Maui.Handlers 4.2.1, whose attribution handling only rewrites and re-expands the banner when the attribution content actually changes. Previously any periodically-updated runtime source (e.g. a live GeoJSON overlay) made the banner pop open on every update; runtime-added sources on Windows also now surface their attribution.
+
+
 ## 0.1.2
 ### ✨ Features and improvements
 - **Android touch gestures on the map** — via the renderer bump to MapLibreNative.Maui.Handlers 4.2.0, two-finger pinch-zoom, rotate and tilt now work on Android (previously only the on-screen zoom/rotate buttons did).
