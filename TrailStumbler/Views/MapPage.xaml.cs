@@ -94,6 +94,71 @@ public partial class MapPage : ContentPage
             _vm.OnMapControllerReady(ctrl);
         else
             Log("Map.StyleLoaded: controller was null — skipping OnMapControllerReady");
+
+        RefreshTerrainControl();
+    }
+
+    /// <summary>
+    /// Shows the map's 3D terrain button and points it at the right DEM, as VistumblerMAUI
+    /// does. The button toggles terrain against a raster-dem already in the style, so the
+    /// style's own DEM is used when it has one (the WifiDB relief styles do); a style
+    /// without one gets the app's from <see cref="TerrainSources.Fallbacks"/>.
+    ///
+    /// Runs on every style load, since the answer changes with the basemap and a style
+    /// reload drops a source the app added. The button is hidden until the lookup lands;
+    /// the result is cached per URL, so only the first load of each style waits.
+    /// </summary>
+    private void RefreshTerrainControl()
+    {
+        var styleUrl = _vm.StyleUrl;
+        Map.ShowTerrainControl = false;
+
+        _ = Task.Run(async () =>
+        {
+            var styleDem = await TerrainSources.FindAsync(styleUrl);
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                // A newer style load may have overtaken this lookup; leave its answer alone.
+                if (_vm.StyleUrl != styleUrl) return;
+
+                try
+                {
+                    var sourceId = styleDem;
+
+                    if (sourceId is null)
+                    {
+                        var dem = TerrainSources.DefaultFallback;
+                        Map.AddRasterDemSource(
+                            TerrainSources.FallbackSourceId,
+                            dem.TileJsonUrl,
+                            dem.TileUrlTemplates,
+                            dem.TileSize,
+                            minZoom: 0,
+                            maxZoom: dem.MaxZoom,
+                            encoding: dem.Encoding,
+                            attribution: dem.Attribution);
+
+                        sourceId = TerrainSources.FallbackSourceId;
+                        Log($"terrain: '{styleUrl}' declares no raster-dem — added '{dem.Name}'");
+                    }
+                    else
+                    {
+                        Log($"terrain: using the style's own DEM '{sourceId}'");
+                    }
+
+                    Map.TerrainControlSourceId = sourceId;
+                    Map.ShowTerrainControl     = true;
+                }
+                catch (Exception ex)
+                {
+                    // A DEM that cannot be added is not worth breaking the map over:
+                    // leave the button hidden and carry on with a flat map.
+                    Log($"terrain: setup failed, button stays hidden: {ex}");
+                    Map.ShowTerrainControl = false;
+                }
+            });
+        });
     }
 
     protected override void OnAppearing()

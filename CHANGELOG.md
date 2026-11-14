@@ -3,6 +3,7 @@
 ## master
 ### ✨ Features and improvements
 - _...Add new stuff here..._
+- **3D terrain button on the map** — a button above the zoom controls turns 3D terrain on and off, as in VistumblerMAUI. On the WifiDB Color Relief styles it uses the style's own elevation data; on a style without any, such as WifiDB OSM or a custom style, the app adds WifiDB's terrain. Tilt the map to see the hills: drag up or down with two fingers on Android.
 
 ### 🐞 Bug fixes
 - _...Add new stuff here..._
