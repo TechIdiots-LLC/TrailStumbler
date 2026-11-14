@@ -6,6 +6,12 @@
 
 ### 🐞 Bug fixes
 - _...Add new stuff here..._
+- **Map renderer updated to MapLibreNative.Maui.Handlers 5.0.0-pre.4** (from 4.2.1). What changes on the map:
+  - The GPS control is two buttons. The top one cycles Off → Show → Follow, and the bottom one cycles the map's direction: free, north up, or turning with your heading. Dragging the map while following drops back to Show.
+  - The compass button resets the tilt as well as the direction.
+  - An attribution you open stays open for 10 seconds, and it wraps at the map's width.
+  - On Android, tapping with two fingers zooms out, and a crash when many map tiles load at once (panning quickly, or leaving the app) is fixed.
+  - The Android app's map library is built for 16 KB memory pages, which Google Play requires, and 32-bit ARM phones get the map too.
 
 
 ## 0.1.3

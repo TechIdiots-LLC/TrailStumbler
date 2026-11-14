@@ -30,7 +30,7 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
     <PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
     <PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.10" />
-    <PackageReference Include="MapLibreNative.Maui.Handlers" Version="4.2.1" />
+    <PackageReference Include="MapLibreNative.Maui.Handlers" Version="5.0.0-pre.4" />
     <PackageReference Include="MaplibreNative.Routing" Version="0.0.13" />
   </ItemGroup>
 
