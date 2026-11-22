@@ -3,6 +3,7 @@ using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TrailStumbler.Core.Models;
+using TrailStumbler.Core.Parsing;
 using TrailStumbler.Core.Services;
 using TrailStumbler.Services;
 
@@ -104,7 +105,8 @@ public partial class LayersViewModel : ObservableObject
                 var progress = new Progress<ImportProgress>(p =>
                     ImportStatus = p.Total > 0 ? $"{file.FileName}: {p.Stage} {p.Done}/{p.Total}" : $"{file.FileName}: {p.Stage}");
 
-                var created = await Task.Run(() => _import.ImportFileAsync(tempPath, file.FileName, progress));
+                var options = await AskForBackgroundAsync(tempPath, file.FileName);
+                var created = await Task.Run(() => _import.ImportFileAsync(tempPath, file.FileName, progress, options: options));
                 File.Delete(tempPath);
 
                 foreach (var layer in created)
@@ -126,6 +128,31 @@ public partial class LayersViewModel : ObservableObject
         {
             IsImporting = false;
         }
+    }
+
+    /// <summary>A Garmin map with its maker's background map in it: import that too? Left out unless asked for.</summary>
+    private static async Task<ImportOptions?> AskForBackgroundAsync(string path, string fileName)
+    {
+        int maps;
+        try
+        {
+            if (FormatDetector.Detect(path) != GisFormat.GarminImg) return null;
+            await using var stream = File.OpenRead(path);
+            maps = ImgParser.BackgroundMapCount(stream);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[LayersViewModel] Background check failed: {ex.Message}");
+            return null;
+        }
+        if (maps == 0) return null;
+        bool include = await Shell.Current.DisplayAlertAsync("Background map",
+            $"{fileName} includes a background map ({maps} part{(maps == 1 ? "" : "s")}: roads, water, towns) " +
+            "beside its trails. The trails are imported either way.\n\n" +
+            "The background can be millions of features: minutes to import, and slow to show. It gets layers of its " +
+            "own, hidden until you turn them on, and isn't used for routing.",
+            "Include background", "Trails only");
+        return new ImportOptions(IncludeBackground: include);
     }
 
     // ── Row callbacks — imported layers ───────────────────────────────────────

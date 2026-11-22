@@ -211,6 +211,11 @@ public class ImgParserEndToEndTests
         Assert.Empty(new ImgParser().Parse(stream));
         using var all = new MemoryStream(BuildSinglePointImg(dirSector: 8, mps: "Background Map"));
         Assert.Single(new ImgParser(skipBackgroundJunk: false).Parse(all));
+        // Asked for, it comes in as the background group, for layers of its own
+        using var asked = new MemoryStream(BuildSinglePointImg(dirSector: 8, mps: "Background Map"));
+        Assert.Equal(ParsedFeature.BackgroundGroup, Assert.Single(new ImgParser(includeBackground: true).Parse(asked)).Group);
+        using var count = new MemoryStream(BuildSinglePointImg(dirSector: 8, mps: "Background Map"));
+        Assert.Equal(1, ImgParser.BackgroundMapCount(count));
     }
 
     [Fact]

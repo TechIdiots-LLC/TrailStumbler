@@ -34,10 +34,14 @@ public class ImgParser : IGisParser
     /// <summary>Polygon <b>type codes</b> (typ &amp; 0x7F) to drop outright.</summary>
     private static readonly HashSet<int> JunkPolygonTypes = new() { 0x4b };
 
-    public ImgParser(bool detailOnly = true, bool skipBackgroundJunk = true)
+    /// <summary>Decode a combined file's background map too, its features in <see cref="ParsedFeature.BackgroundGroup"/>.</summary>
+    private readonly bool _includeBackground;
+
+    public ImgParser(bool detailOnly = true, bool skipBackgroundJunk = true, bool includeBackground = false)
     {
         _detailOnly = detailOnly;
         _skipBackgroundJunk = skipBackgroundJunk;
+        _includeBackground = includeBackground;
     }
 
     /// <summary>
@@ -59,6 +63,13 @@ public class ImgParser : IGisParser
         return skip;
     }
 
+    /// <summary>How many of the file's maps are its maker's background map (read from its directory only).</summary>
+    public static int BackgroundMapCount(Stream stream)
+    {
+        using var img = new ImgFile(stream);
+        return BackgroundMaps(img.MapTiles(), img.MapDescriptions()).Count;
+    }
+
     public List<ParsedFeature> Parse(Stream stream)
     {
         var results = new List<ParsedFeature>();
@@ -68,7 +79,8 @@ public class ImgParser : IGisParser
         var background = _skipBackgroundJunk ? BackgroundMaps(tiles, img.MapDescriptions()) : [];
         foreach (var name in tiles)
         {
-            if (background.Contains(name)) continue;
+            bool isBackground = background.Contains(name);
+            if (isBackground && !_includeBackground) continue;
             var treData = img.ReadSubfile(name, "TRE");
             var rgnData = img.ReadSubfile(name, "RGN");
             if (treData is null || rgnData is null) continue;
@@ -86,7 +98,10 @@ public class ImgParser : IGisParser
                              wantAreas: true, typeFilter: null,
                              cloudPointTypes: _skipBackgroundJunk ? CloudPointTypes : null,
                              excludePolygonTypes: _skipBackgroundJunk ? JunkPolygonTypes : null))
+                {
+                    if (isBackground) feat.Group = ParsedFeature.BackgroundGroup;
                     results.Add(feat);
+                }
             }
         }
         return results;

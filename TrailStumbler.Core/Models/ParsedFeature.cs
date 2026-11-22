@@ -12,6 +12,11 @@ public class ParsedFeature
     public string Name { get; set; } = "";
     public string Description { get; set; } = "";      // cleaned
     public BoundingBox Bbox { get; } = new();
+    /// <summary>A part of the file imported as layers of its own (<see cref="BackgroundGroup"/>), or null.</summary>
+    public string? Group { get; set; }
+
+    /// <summary>A Garmin map's background map: its roads, water and towns, beside the trails.</summary>
+    public const string BackgroundGroup = "background";
 
     public GeometryFamily Family => GeometryFamilyExtensions.FamilyOf(GeometryType);
 }
