@@ -123,8 +123,6 @@ public partial class MapViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CanStart))]
     private bool _hasPlannedRoute;
     public bool CanStart => HasPlannedRoute && !IsNavigating;
-    // What the routes were planned with, for Start
-    private RouteOptions? _plannedOptions;
     [ObservableProperty] private RouteProgress? _currentProgress;
     [ObservableProperty] private string _routeStatusMessage = "";
     [ObservableProperty] private bool _hasHighwayWarning;
@@ -785,7 +783,7 @@ public partial class MapViewModel : ObservableObject
         if (_session.ActiveRoute is null) return;
         _session.StartSimulation(SimulationSpeed);
         IsSimulating = _session.IsSimulating;
-        IsNavigating = true;   // a planned route not started: driven now (the GPS follows it after the drive)
+        IsNavigating = true;   // a planned route not started: driven now, and planned again after the drive
         OnPropertyChanged(nameof(RouteSummary));
         await _recorder.ResumeGpsAsync();   // StartSimulation stops the GPS listener
     }
@@ -795,6 +793,7 @@ public partial class MapViewModel : ObservableObject
         if (!IsSimulating) return;
         _session.StopSimulation();
         IsSimulating = false;
+        IsNavigating = _session.IsNavigating;   // following the GPS if started, else back to the planned route
         OnPropertyChanged(nameof(RouteSummary));
         await _recorder.ResumeGpsAsync();
     }
@@ -964,7 +963,6 @@ public partial class MapViewModel : ObservableObject
         IsSimulating = false;
         IsCameraPaused = false;
         HasPlannedRoute = false;
-        _plannedOptions = null;
         _closures.Clear();
         UpdateClosuresOnMap();
         IsPlacingClosure = false;
@@ -1035,16 +1033,14 @@ public partial class MapViewModel : ObservableObject
                 Progress = routeProgress,
                 CancellationToken = cts.Token,
             };
-            // The engine plans without the session's GPS listener; the overlay shows what it found
-            var alts = await Task.Run(() => _session.Engine.PlanAsync(opts, _routeCount));
+            // Planned and drawn, without the GPS (Start follows it)
+            var alts = await _session.PlanAsync(opts, _routeCount);
             if (alts.Count == 0)
             {
                 routeLog.Add("No route found");
                 RouteStatusMessage = string.Join("\n", routeLog);
                 return;
             }
-            _overlay.ShowRoutes(alts, 0);
-            _plannedOptions = opts with { Progress = null, CancellationToken = default };
 
             // Route cards, shortest first and chosen
             RouteOptions.Clear();
@@ -1068,31 +1064,14 @@ public partial class MapViewModel : ObservableObject
         }
     }
 
-    /// <summary>
-    /// Start: follow the chosen route with the GPS. NavigationSession (0.1.0) listens only from StartAsync, which plans
-    /// again (from the tiles just cached), and the same routes come back in the same order.
-    /// </summary>
+    /// <summary>Start: follow the chosen route (selected on the session as its card was tapped) with the GPS.</summary>
     [RelayCommand]
     private async Task StartRouteAsync()
     {
-        if (_plannedOptions is not { } planned || IsNavigating) return;
-        int chosen = RouteOptions.FirstOrDefault(r => r.IsSelected)?.Index ?? 0;
-        RouteStatusMessage = "Starting…";
-        try
-        {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(90));
-            var route = await _session.StartAsync(planned with { CancellationToken = cts.Token }, maxRoutes: _routeCount);
-            if (route is null) { RouteStatusMessage = "No route found"; return; }
-            if (chosen > 0 && chosen < _session.RouteAlternatives.Count) SelectRoute(chosen);
-            IsNavigating = true;
-            RouteStatusMessage = "";
-        }
-        catch (OperationCanceledException) { RouteStatusMessage = "Starting timed out"; }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[MapViewModel] StartRoute threw: {ex}");
-            RouteStatusMessage = $"Route error: {ex.Message}";
-        }
+        if (!HasPlannedRoute || IsNavigating) return;
+        if (!await _session.FollowAsync()) { RouteStatusMessage = "Plan the route again"; return; }
+        IsNavigating = true;
+        RouteStatusMessage = "";
     }
 
     /// <summary>Fetches the style JSON once and extracts the tile URL for the
@@ -1149,7 +1128,6 @@ public partial class MapViewModel : ObservableObject
         IsCameraPaused = false;
         IsNavigating = false;
         HasPlannedRoute = false;
-        _plannedOptions = null;
         CurrentProgress = null;
         HasHighwayWarning = false;
         RouteOptions.Clear();
