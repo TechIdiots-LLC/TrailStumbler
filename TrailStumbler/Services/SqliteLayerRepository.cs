@@ -152,46 +152,8 @@ public class SqliteLayerRepository : ILayerRepository, IRouteDataSource
             return null;
         }
 
-        // Build GeoJSON coordinate array [[lon, lat, ele?], ...]
-        var coordsBuilder = new StringBuilder("[");
-        var coordTimesBuilder = new StringBuilder("[");
-        double minLat = double.MaxValue, maxLat = double.MinValue;
-        double minLon = double.MaxValue, maxLon = double.MinValue;
-        double totalDistM = 0;
-        RecordingPoint? prev = null;
-
-        for (int i = 0; i < points.Count; i++)
-        {
-            var pt = points[i];
-            if (i > 0) { coordsBuilder.Append(','); coordTimesBuilder.Append(','); }
-
-            coordsBuilder.Append('[');
-            coordsBuilder.Append(pt.Lon.ToString("F6", CultureInfo.InvariantCulture));
-            coordsBuilder.Append(',');
-            coordsBuilder.Append(pt.Lat.ToString("F6", CultureInfo.InvariantCulture));
-            if (pt.Ele.HasValue)
-            {
-                coordsBuilder.Append(',');
-                coordsBuilder.Append(pt.Ele.Value.ToString("F1", CultureInfo.InvariantCulture));
-            }
-            coordsBuilder.Append(']');
-
-            var ts = new DateTime(pt.TimestampTicks, DateTimeKind.Utc).ToString("yyyy-MM-ddTHH:mm:ssZ");
-            coordTimesBuilder.Append('"'); coordTimesBuilder.Append(ts); coordTimesBuilder.Append('"');
-
-            if (pt.Lat < minLat) minLat = pt.Lat;
-            if (pt.Lat > maxLat) maxLat = pt.Lat;
-            if (pt.Lon < minLon) minLon = pt.Lon;
-            if (pt.Lon > maxLon) maxLon = pt.Lon;
-
-            if (prev is not null)
-                totalDistM += Haversine(prev.Lat, prev.Lon, pt.Lat, pt.Lon);
-            prev = pt;
-        }
-        coordsBuilder.Append(']');
-        coordTimesBuilder.Append(']');
-
-        var propsJson = $"{{\"coordTimes\":{coordTimesBuilder},\"stroke\":\"#FFFF66\"}}";
+        var line = Core.Recording.RecordedTrack.Build(points)!;   // two or more points, none left out yet
+        var propsJson = $"{{\"coordTimes\":{line.CoordTimesJson},\"stroke\":\"#FFFF66\"}}";
 
         var layer = new MapLayer
         {
@@ -201,22 +163,22 @@ public class SqliteLayerRepository : ILayerRepository, IRouteDataSource
             ColorHex = "#FFFF66",
             IsVisible = true,
             IsRecordedTrack = true,
-            DistanceMeters = totalDistM,
+            DistanceMeters = line.DistanceMeters,
             FeatureCount = 1,
-            MinLat = minLat, MaxLat = maxLat,
-            MinLon = minLon, MaxLon = maxLon,
+            MinLat = line.MinLat, MaxLat = line.MaxLat,
+            MinLon = line.MinLon, MaxLon = line.MaxLon,
             ImportedAtTicks = DateTime.UtcNow.Ticks,
         };
 
         var feature = new MapFeature
         {
-            GeometryType = "LineString",
-            CoordinatesJson = coordsBuilder.ToString(),
+            GeometryType = line.GeometryType,
+            CoordinatesJson = line.CoordinatesJson,
             PropertiesJson = propsJson,
             Name = session.Name,
             Description = "",
-            MinLat = minLat, MaxLat = maxLat,
-            MinLon = minLon, MaxLon = maxLon,
+            MinLat = line.MinLat, MaxLat = line.MaxLat,
+            MinLon = line.MinLon, MaxLon = line.MaxLon,
         };
 
         await InsertLayerAsync(layer, new[] { feature });
@@ -239,6 +201,37 @@ public class SqliteLayerRepository : ILayerRepository, IRouteDataSource
             conn.Execute("DELETE FROM RecordingPoints WHERE SessionId = ?", sessionId);
             conn.Delete<RecordingSession>(sessionId);
         });
+    }
+
+    public async Task<bool> SetRecordingPointsExcludedAsync(MapLayer layer, IReadOnlyCollection<long> pointIds, bool excluded)
+    {
+        var db = await GetDbAsync();
+        var points = await GetRecordingPointsByLayerAsync(layer.Id);
+        var ids = pointIds.ToHashSet();
+        var changed = points.Where(p => ids.Contains(p.Id) && p.Excluded != excluded).ToList();
+        foreach (var p in changed) p.Excluded = excluded;
+        var line = Core.Recording.RecordedTrack.Build(points);
+        if (line is null) return false;   // nothing left to draw
+
+        layer.DistanceMeters = line.DistanceMeters;
+        layer.MinLat = line.MinLat; layer.MaxLat = line.MaxLat;
+        layer.MinLon = line.MinLon; layer.MaxLon = line.MaxLon;
+        await db.RunInTransactionAsync(conn =>
+        {
+            foreach (var p in changed) conn.Execute("UPDATE RecordingPoints SET Excluded = ? WHERE Id = ?", excluded, p.Id);
+            var feature = conn.Table<MapFeature>().FirstOrDefault(f => f.LayerId == layer.Id);
+            if (feature is not null)
+            {
+                feature.GeometryType = line.GeometryType;
+                feature.CoordinatesJson = line.CoordinatesJson;
+                feature.PropertiesJson = $"{{\"coordTimes\":{line.CoordTimesJson},\"stroke\":\"#FFFF66\"}}";
+                feature.MinLat = line.MinLat; feature.MaxLat = line.MaxLat;
+                feature.MinLon = line.MinLon; feature.MaxLon = line.MaxLon;
+                conn.Update(feature);
+            }
+            conn.Update(layer);
+        });
+        return true;
     }
 
     public async Task<List<RecordingPoint>> GetRecordingPointsByLayerAsync(int layerId)

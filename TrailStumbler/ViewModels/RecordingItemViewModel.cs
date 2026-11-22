@@ -47,4 +47,10 @@ public partial class RecordingItemViewModel : ObservableObject
 
     [RelayCommand]
     private Task DeleteAsync() => _parent.DeleteRecordedTrackAsync(this);
+
+    [RelayCommand]
+    private Task EditAsync() => _parent.EditTrackAsync(this);
+
+    /// <summary>The track was edited: its distance again.</summary>
+    public void Refresh() => OnPropertyChanged(nameof(DistanceLabel));
 }

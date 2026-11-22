@@ -38,6 +38,7 @@ public partial class LayersViewModel : ObservableObject
         _export = export;
 
         _map.RecordingSaved += OnRecordingSaved;
+        _map.TrackEdited += (_, layer) => RecordedTracks.FirstOrDefault(t => ReferenceEquals(t.Layer, layer))?.Refresh();
     }
 
     public async Task EnsureLoadedAsync()
@@ -293,6 +294,13 @@ public partial class LayersViewModel : ObservableObject
     {
         if (!item.IsVisible) item.IsVisible = true;
         _map.RequestFitBounds(item.Layer);
+        await Shell.Current.GoToAsync("//MapPage");
+    }
+
+    /// <summary>Edit a recording on the map: leave points out of it, or put them back.</summary>
+    public async Task EditTrackAsync(RecordingItemViewModel item)
+    {
+        await _map.BeginTrackEditAsync(item.Layer);
         await Shell.Current.GoToAsync("//MapPage");
     }
 

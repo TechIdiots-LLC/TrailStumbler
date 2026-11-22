@@ -39,7 +39,9 @@ public partial class MapPage : ContentPage
         {
             try
             {
-                if (_vm.IsPlacingPin)
+                if (_vm.IsEditingTrack)
+                    _vm.TapTrackPoint(e.LatLng.Latitude, e.LatLng.Longitude, e.ScreenX, e.ScreenY);
+                else if (_vm.IsPlacingPin)
                     await _vm.PlacePinAsync(e.LatLng.Latitude, e.LatLng.Longitude);
                 else
                     await _vm.OnMapTappedAsync(e.ScreenX, e.ScreenY);
@@ -52,6 +54,7 @@ public partial class MapPage : ContentPage
         {
             try
             {
+                if (_vm.IsEditingTrack) return;   // a long press while editing a track isn't a route pin
                 if (_vm.Origin is null)
                     _vm.ActivateOriginPlacementCommand.Execute(null);
                 else

@@ -111,6 +111,35 @@
             </Button.Triggers>
         </Button>
 
+        <!-- Editing a recorded track: what's selected, how much is kept, and what to do with the selection -->
+        <Border Grid.Row="0"
+                VerticalOptions="Start"
+                Margin="8,8,56,8"
+                Padding="12,10"
+                BackgroundColor="#E6202020"
+                StrokeShape="RoundRectangle 12"
+                Stroke="Transparent"
+                IsVisible="{Binding IsEditingTrack}">
+            <VerticalStackLayout Spacing="8">
+                <Label Text="{Binding TrackEditTitle}" TextColor="White" FontSize="15" FontAttributes="Bold"
+                       LineBreakMode="TailTruncation" />
+                <Label Text="{Binding TrackEditStatus}" TextColor="#DDDDDD" FontSize="12" />
+                <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="6">
+                    <Button Text="Exclude" Command="{Binding ExcludeSelectionCommand}"
+                            IsEnabled="{Binding HasTrackSelection}"
+                            BackgroundColor="#B71C1C" TextColor="White" FontSize="13" Padding="4,0" />
+                    <Button Grid.Column="1" Text="Include" Command="{Binding IncludeSelectionCommand}"
+                            IsEnabled="{Binding HasTrackSelection}"
+                            BackgroundColor="#2E7D32" TextColor="White" FontSize="13" Padding="4,0" />
+                    <Button Grid.Column="2" Text="Clear" Command="{Binding ClearTrackSelectionCommand}"
+                            IsEnabled="{Binding HasTrackSelection}"
+                            BackgroundColor="#555555" TextColor="White" FontSize="13" Padding="4,0" />
+                    <Button Grid.Column="3" Text="Done" Command="{Binding FinishTrackEditCommand}"
+                            BackgroundColor="#1565C0" TextColor="White" FontSize="13" Padding="4,0" />
+                </Grid>
+            </VerticalStackLayout>
+        </Border>
+
         <!-- Record a track: the button, and while recording how long and how far -->
         <HorizontalStackLayout Grid.Row="0"
                                VerticalOptions="End" HorizontalOptions="End"

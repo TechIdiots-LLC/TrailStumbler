@@ -103,12 +103,15 @@ public static class GpxWriter
         await writer.WriteEndDocumentAsync();
     }
 
+    // A segment per kept stretch: the points left out aren't written, and a gap stays a gap
     private static async Task WriteRecordedTrackAsync(XmlWriter writer, string trackName, IReadOnlyList<RecordingPoint> points)
     {
         await writer.WriteStartElementAsync(null, "trk", Ns);
         await writer.WriteElementStringAsync(null, "name", Ns, trackName);
+        foreach (var stretch in Recording.RecordedTrack.Stretches(points))
+        {
         await writer.WriteStartElementAsync(null, "trkseg", Ns);
-        foreach (var pt in points)
+        foreach (var pt in stretch)
         {
             await writer.WriteStartElementAsync(null, "trkpt", Ns);
             await WriteLatLonAsync(writer, pt.Lat, pt.Lon, pt.Ele);
@@ -117,6 +120,7 @@ public static class GpxWriter
             await writer.WriteEndElementAsync(); // trkpt
         }
         await writer.WriteEndElementAsync(); // trkseg
+        }
         await writer.WriteEndElementAsync(); // trk
     }
 

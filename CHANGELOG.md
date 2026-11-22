@@ -3,6 +3,7 @@
 ## master
 ### ✨ Features and improvements
 - _...Add new stuff here..._
+- **Leave points out of a recorded track.** ✎ on a recording (Layers → My recordings) opens it on the map with its points: tap one point, then another, and **Exclude** the stretch between (a road driven by mistake), or **Include** it again. The points are kept, but the track is drawn, measured and exported without them, a gap where they were rather than a line across it
 - **Export several layers at once.** **Export** on the Layers page saves all your layers, or those shown on the map, to one GeoJSON, KML or GPX file: GeoJSON tags each feature with its layer, KML gives each layer a folder, and GPX has the points as waypoints and the trails and recordings as tracks (recordings with their times and elevations)
 - **Record a track from the map.** The round button at the bottom right starts and stops recording; while recording it shows how long and how far. Each recording is saved as its own track in Layers → My recordings, to show, hide, zoom to or export as GPX. Recording was there all along (with crash recovery and Android's background service), but nothing in the app started it
 - **Route by ATV or UTV.** The route planner's travel choices add **Hybrid ATV (offline)** and **Hybrid UTV (offline)** beside hybrid moto: the same trails-and-roads routing, with the trails each may use. A motorcycle keeps off trails that bar motorcycles, an ATV (50 in) may use those, a UTV (60 in) keeps off 50-inch trails too; none takes a closed trail

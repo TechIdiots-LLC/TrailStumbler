@@ -38,5 +38,12 @@ public interface ILayerRepository
 
     /// <summary>Returns the accepted GPS points linked to a saved recorded-track layer.</summary>
     Task<List<RecordingPoint>> GetRecordingPointsByLayerAsync(int layerId);
+
+    /// <summary>
+    /// Leaves points of a recorded track out (or puts them back) and redraws the track from the rest: its line, its
+    /// distance and bounds, on <paramref name="layer"/> too. False, and nothing changed, when it would keep no two
+    /// points in a row.
+    /// </summary>
+    Task<bool> SetRecordingPointsExcludedAsync(MapLayer layer, IReadOnlyCollection<long> pointIds, bool excluded);
 }
 

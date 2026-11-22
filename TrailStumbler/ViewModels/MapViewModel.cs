@@ -310,6 +310,12 @@ public partial class MapViewModel : ObservableObject
 
             StatusMessage = $"{_addedLayerIds.Count} layer(s) shown";
             UpdateWaypointPinsOnMap();
+            // A track being edited: its edit drawing again, in place of the track
+            if (_editingTrack is not null)
+            {
+                RemoveLayerFromMap(_editingTrack);
+                DrawTrackEdit();
+            }
             TryApplyPendingFit();
             if (_mvtTileJsonUrl is null)
                 _ = FetchMvtTileUrlAsync();
@@ -585,7 +591,8 @@ public partial class MapViewModel : ObservableObject
     // ── Called from LayersViewModel ───────────────────────────────────────────
 
     private static bool IsPersistentLayerId(string id)
-        => id == RecordingLayerId || id == OriginLayerId || id == DestLayerId || id == ClosureLayerId;
+        => id == RecordingLayerId || id == OriginLayerId || id == DestLayerId || id == ClosureLayerId
+           || id == EditLineLayerId || id == EditPointLayerId;
 
     /// <summary>Re-adds all shown layers with the current paint settings (e.g. after label toggle).
     /// Operates on the already-loaded layer list — no DB round-trip needed.</summary>

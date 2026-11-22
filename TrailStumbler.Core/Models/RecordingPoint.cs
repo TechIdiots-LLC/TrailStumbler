@@ -16,4 +16,6 @@ public class RecordingPoint
     public double? AccuracyMeters { get; set; }
     public double? SpeedMps { get; set; }
     public double? Course { get; set; }
+    /// <summary>Left out of the track by the user (driven on a road by mistake): kept, but not drawn, measured or exported.</summary>
+    public bool Excluded { get; set; }
 }
