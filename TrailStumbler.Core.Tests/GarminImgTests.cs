@@ -214,6 +214,23 @@ public class ImgParserEndToEndTests
     }
 
     [Fact]
+    public void AStreetMapBesideTheTrailMapIsLeftOut()
+    {
+        // TrailIntel's: the trail map named for the product, its street-map tiles with mkgmap's default description
+        var described = new Dictionary<string, string>
+        {
+            ["12335678"] = "TrailIntel ATV Map NE", ["12335679"] = "OSM street map", ["12335680"] = "OSM street map",
+        };
+        Assert.Equal(["12335679", "12335680"], ImgParser.BackgroundMaps(described.Keys, described).Order());
+        // A map of one's own, every tile with mkgmap's default: all kept
+        var own = new Dictionary<string, string> { ["63240001"] = "OSM street map", ["63240002"] = "OSM street map" };
+        Assert.Empty(ImgParser.BackgroundMaps(own.Keys, own));
+        // ...and beside a background map, still kept
+        own["63240003"] = "Background Map";
+        Assert.Equal(["63240003"], ImgParser.BackgroundMaps(own.Keys, own));
+    }
+
+    [Fact]
     public void DecodesSinglePointTile()
     {
         var img = BuildSinglePointImg();
