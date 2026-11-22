@@ -3,6 +3,7 @@
 ## master
 ### ✨ Features and improvements
 - _...Add new stuff here..._
+- **Plan a route, then Start it.** **Plan Route** finds and draws the routes to choose from, and nothing follows the GPS yet: before, it navigated at once, so a ride planned away from A was rerouted straight away from wherever the phone was. **Start** follows the chosen route with the GPS, and **Simulate** drives it; either way the route sheet tucks itself away for the map
 - **Closures: routes go round a closed trail.** **Mark closed** in the route sheet, then tap the map where it's closed (it snaps to a trail within 50 m); while navigating, **Closed ahead** marks the route 60 m ahead of you. Either way a new route is found from where you are, round it, by road if need be, and every later reroute keeps going round it. Closures show as red dots and are kept for the next route planned until cleared (✕) or Clear
 - **Navigation follows you and talks.** The map follows you while navigating, turned to the road, tilted, and zoomed to the next turn, framed between the instruction panel and the route sheet. Move the map and it waits: **Recenter** follows again, and **Overview** shows the rest of the route. Turn instructions are spoken (**Voice** in the route sheet turns it off, and it's remembered)
 - **Rerouting.** Leave the route and a new one is planned from where you are; the route sheet says so ("Off the route: finding a new one…", "New route from here"), and when you've arrived

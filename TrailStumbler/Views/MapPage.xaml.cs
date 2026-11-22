@@ -218,6 +218,8 @@ public partial class MapPage : ContentPage
         }
         else if (e.PropertyName == nameof(MapViewModel.IsNavigating))
         {
+            // Under way: the sheet makes way for the map (its header shows what's going on)
+            if (_vm.IsNavigating) _ = CollapseSheetAsync();
             UpdateCameraViewport();
         }
         else if (e.PropertyName == nameof(MapViewModel.IsPlacingPin) && !_vm.IsPlacingPin && _reopenAfterPin)
