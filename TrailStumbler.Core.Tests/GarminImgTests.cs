@@ -85,16 +85,17 @@ public class GarminHelperTests
 /// sprite <c>category</c>, plus rejection of mid-string label mis-reads.</summary>
 public class GarminTypeClassTests
 {
-    [Theory]
-    [InlineData("0x0d", "#E2571E")]   // curated trail colour
-    [InlineData("0x0f", "#F0A81A")]
-    public void KnownLineTypesGetCuratedStroke(string type, string color)
-        => Assert.Equal(color, GarminTypeClasses.ClassifyLine(type).Color);
+    [Fact]
+    public void AKnownMakesLineTypesGetTheirKindsColour()
+    {
+        Assert.Equal(("Corridor", "#0000FF"), GarminTypeClasses.ClassifyLine(GarminProduct.TrailIntelAtv, "0x04"));
+        Assert.Equal(("Closed ATV Trail", "#808080"), GarminTypeClasses.ClassifyLine(GarminProduct.GpsTrailmastersAtv, "0x1d"));
+    }
 
     [Fact]
     public void UnknownLineTypeStillGetsADistinctColor()
     {
-        var color = GarminTypeClasses.ClassifyLine("0x7e").Color;
+        var color = GarminTypeClasses.ClassifyLine(GarminProduct.Unknown, "0x7e").Color;
         Assert.StartsWith("#", color);              // never null → always renders apart
     }
 
@@ -107,7 +108,7 @@ public class GarminTypeClassTests
 
     [Fact]
     public void UnconfirmedPoiTypeFallsBackToGenericSprite()
-        => Assert.Null(GarminTypeClasses.CategoryForPoint("0x2c04"));
+        => Assert.Null(GarminTypeClasses.CategoryForPoint("0x6400"));   // lodging, sales, services alike
 }
 
 public class LabelBoundaryTests

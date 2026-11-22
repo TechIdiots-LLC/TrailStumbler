@@ -1020,7 +1020,12 @@ public partial class MapViewModel : ObservableObject
                 else routeLog.Add(msg);
                 RouteStatusMessage = string.Join("\n", routeLog);
             });
-            var tracks = await _dataSource.GetRoutableTrackFeaturesAsync();
+            // The trails the vehicle may use: not those whose data says closed, closed to it, or too narrow
+            var vehicle = profile is RouteProfile.HybridOfflineMotorcycle or RouteProfile.HybridMotorcycle or RouteProfile.Motorcycle
+                ? Core.Parsing.TrailVehicle.Motorcycle : Core.Parsing.TrailVehicle.Any;
+            var tracks = _dataSource is SqliteLayerRepository repo
+                ? await repo.GetRoutableTrackFeaturesAsync(vehicle)
+                : await _dataSource.GetRoutableTrackFeaturesAsync();
             var opts = new RouteOptions
             {
                 Origin = _origin.Value,

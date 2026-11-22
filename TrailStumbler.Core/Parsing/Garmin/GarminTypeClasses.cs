@@ -1,82 +1,115 @@
 namespace TrailStumbler.Core.Parsing.Garmin;
 
+/// <summary>The trail map products whose line types are known (each maker numbers them its own way).</summary>
+internal enum GarminProduct { Unknown, GpsTrailmastersAtv, TrailIntelAtv, TrailIntelSnowmobile }
+
+/// <summary>What a line type is on a product's map: its kind (shown as the trail's description), colour, and who may use it.</summary>
+internal sealed record TrailKind(string Kind, string Color, bool Closed = false, bool NoMotorcycles = false, int? MaxWidthInches = null);
+
 /// <summary>
-/// Trail class + colour mapping for Garmin line type codes. Ported from
-/// GarminBridge's <c>typ.py</c> and extended with the codes actually observed in
-/// the TrailIntel ATV maps (ne/mw/se/sw).
+/// Trail kinds and POI categories for Garmin type codes. A map's TYP holds only styling, not names, so the line
+/// types were matched against GPS Trailmasters' KMZ of the same trails, which names each one (docs in
+/// docs/garmin-import.md): the 2023 GPS Trailmasters map and TrailIntel's number the same kinds differently. The
+/// snowmobile map's kinds are read from its trails' names ("PROVINCIAL 83", "REGIONAL 303", "DANGER - LAKE …"),
+/// with no KMZ to check them by. A map of another make keeps a stable colour per code and no kinds.
 ///
-/// A full binary TYP parser (the map's own colours/bitmaps) is future work; the
-/// TYP in these maps is tiny and stores styling, not readable class names. Until
-/// then we ship a curated map of the codes seen in the ATV maps, and any code not
-/// in the table still gets a distinct, stable colour from <see cref="Palette"/> so
-/// different trail types always render apart.
-///
-/// The colour is surfaced as the simplestyle <c>stroke</c> property on each line
-/// feature, so trail lines are coloured through the exact same MapLibre
-/// <c>["case", ["has","stroke"], ["get","stroke"], layerColour]</c> paint
-/// expression as the GPS Trail Masters KML import.
+/// The colour is the simplestyle <c>stroke</c> property the map's line paint reads, as for a KML import.
 /// </summary>
 internal static class GarminTypeClasses
 {
-    // Observed line (trail) type codes across the ATV maps. Names are best guesses
-    // for display/grouping; colours are chosen to be distinct and legible. Adjust
-    // as the TYP legend is confirmed.
-    private static readonly Dictionary<string, (string Name, string Color)> DefaultLineClasses = new()
+    // GPS Trailmasters' own KMZ colours (KML is aabbggrr): green 60" trails, blue corridors, red 50" trails, black
+    // access roads, grey closed trails
+    private const string Green = "#008000", Blue = "#0000FF", Red = "#FF0000", Black = "#000000", Grey = "#808080";
+
+    private static readonly Dictionary<(GarminProduct, int), TrailKind> Kinds = new()
     {
-        ["0x0d"] = ("trail_primary",   "#E2571E"), // most prominent trail
-        ["0x0e"] = ("trail_atv",       "#1B7837"), // green
-        ["0x0f"] = ("trail",           "#F0A81A"), // amber — the common trail code
-        ["0x10"] = ("trail_road",      "#2166AC"), // blue
-        ["0x11"] = ("trail_secondary", "#762A83"), // purple
-        ["0x12"] = ("trail_connector", "#8A4B1E"), // brown
-        ["0x22"] = ("trail_boundary",  "#4D4D4D"), // grey — non-trail line (boundary/other)
+        [(GarminProduct.GpsTrailmastersAtv, 0x01)] = new("UTV/ATV 60 Inches and Motorcycles", Green, MaxWidthInches: 60),
+        [(GarminProduct.GpsTrailmastersAtv, 0x02)] = new("UTV/ATV 60 Inches, No Motorcycles", Green, NoMotorcycles: true, MaxWidthInches: 60),
+        [(GarminProduct.GpsTrailmastersAtv, 0x03)] = new("Corridor", Blue),
+        [(GarminProduct.GpsTrailmastersAtv, 0x04)] = new("ATV 50 Inches and Motorcycles", Red, MaxWidthInches: 50),
+        [(GarminProduct.GpsTrailmastersAtv, 0x0b)] = new("ATV Access Trail", Black),
+        [(GarminProduct.GpsTrailmastersAtv, 0x1d)] = new("Closed ATV Trail", Grey, Closed: true),
+
+        [(GarminProduct.TrailIntelAtv, 0x03)] = new("UTV/ATV 60 Inches and Motorcycles", Green, MaxWidthInches: 60),
+        [(GarminProduct.TrailIntelAtv, 0x02)] = new("UTV/ATV 60 Inches, No Motorcycles", Green, NoMotorcycles: true, MaxWidthInches: 60),
+        [(GarminProduct.TrailIntelAtv, 0x04)] = new("Corridor", Blue),
+        [(GarminProduct.TrailIntelAtv, 0x07)] = new("ATV 50 Inches and Motorcycles", Red, MaxWidthInches: 50),
+        [(GarminProduct.TrailIntelAtv, 0x08)] = new("ATV Access Trail", Black),
+        [(GarminProduct.TrailIntelAtv, 0x06)] = new("Closed ATV Trail", Grey, Closed: true),
+        [(GarminProduct.TrailIntelAtv, 0x05)] = new("Private Trail", "#8A4B1E"),
+
+        [(GarminProduct.TrailIntelSnowmobile, 0x0b)] = new("Provincial / ITS Trail", "#D32F2F"),
+        [(GarminProduct.TrailIntelSnowmobile, 0x0d)] = new("Corridor", "#D32F2F"),
+        [(GarminProduct.TrailIntelSnowmobile, 0x04)] = new("Regional Trail", "#F57C00"),
+        [(GarminProduct.TrailIntelSnowmobile, 0x02)] = new("Local / Club Trail", "#1976D2"),
+        [(GarminProduct.TrailIntelSnowmobile, 0x07)] = new("Trail", "#7B1FA2"),
+        [(GarminProduct.TrailIntelSnowmobile, 0x08)] = new("Access, Private or Unmaintained Trail", Black),
+        [(GarminProduct.TrailIntelSnowmobile, 0x03)] = new("Approximate Trail", Grey),
+        [(GarminProduct.TrailIntelSnowmobile, 0x06)] = new("Danger / Caution", "#FBC02D"),
+        [(GarminProduct.TrailIntelSnowmobile, 0x0c)] = new("Danger / Caution", "#FBC02D"),
     };
 
-    // Distinct fallback colours for any line code not in the curated table, keyed
-    // deterministically off the code so a given type is always the same colour.
+    // Distinct colours for a code of an unknown make, keyed off the code so a type is always the same colour
     private static readonly string[] Palette =
     {
         "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00",
         "#A65628", "#F781BF", "#00CED1", "#999999",
     };
 
+    /// <summary>The product a map is, from its MapSource names ("TrailIntel Snowmobile Map NE", "GPS Trailmasters ATV New England V12.00").</summary>
+    public static GarminProduct ProductOf(IEnumerable<string> mapNames)
+    {
+        foreach (var n in mapNames)
+        {
+            bool atv = n.Contains("ATV", StringComparison.OrdinalIgnoreCase);
+            if (n.Contains("TrailIntel", StringComparison.OrdinalIgnoreCase))
+            {
+                if (n.Contains("Snowmobile", StringComparison.OrdinalIgnoreCase)) return GarminProduct.TrailIntelSnowmobile;
+                if (atv) return GarminProduct.TrailIntelAtv;
+            }
+            if (atv && n.Contains("Trailmasters", StringComparison.OrdinalIgnoreCase)) return GarminProduct.GpsTrailmastersAtv;
+        }
+        return GarminProduct.Unknown;
+    }
+
     /// <summary>
-    /// Map a point's Garmin type (e.g. "0x2f01") to one of the sprite categories the
-    /// map already understands from the KML import (see <c>MapViewModel.SymbolLayout</c>):
-    /// fuel / food / lodging / parking / camping / scenic_view / restroom / atv_club.
-    /// Emitted as the <c>category</c> property so Garmin POIs get the same coloured
-    /// sprites as GPS Trail Masters points. Confirmed against the ATV maps' labels:
-    /// 0x2f01 = gas ("CHEVRON GAS…"), 0x2a00 = food ("… /DQ", "… RESTAURANT").
-    /// Types whose meaning isn't confirmed return null → the generic circle sprite.
+    /// A point's Garmin type ("0x2f01") as one of the sprite categories the map knows from the KML import (see
+    /// <c>MapViewModel.SymbolLayout</c>); null for the generic circle. Checked against GPS Trailmasters' KMZ points:
+    /// 0x2a food, 0x2f01 fuel, 0x2f0b parking and trailheads, 0x2c04 scenic places, parks and camping.
     /// </summary>
     public static string? CategoryForPoint(string garminType)
     {
-        if (!garminType.StartsWith("0x") ||
-            !int.TryParse(garminType.AsSpan(2), System.Globalization.NumberStyles.HexNumber, null, out int code))
-            return null;
-        int hi = (code >> 8) & 0xFF;   // Garmin POI group (high type byte)
+        if (!TryCode(garminType, out int code)) return null;
         return code switch
         {
             0x2f01 => "fuel",
-            _ => hi switch
+            0x2f0b => "parking",
+            0x2c04 => "scenic_view",
+            _ => ((code >> 8) & 0xFF) switch
             {
-                0x2a => "food",       // Food & Drink
-                0x2b => "lodging",    // Hotels & Lodging
-                _ => null,            // 0x2c waypoints / 0x2f other: unconfirmed → circle
+                0x2a => "food",
+                0x2b => "lodging",
+                _ => null,
             },
         };
     }
 
-    /// <returns>(class name, non-null stroke colour) for a line type code such as "0x0f".</returns>
-    public static (string Name, string Color) ClassifyLine(string garminType)
+    /// <summary>A line type's kind on the product's map, or null when it isn't known.</summary>
+    public static TrailKind? KindOf(GarminProduct product, string garminType) =>
+        TryCode(garminType, out int code) && Kinds.TryGetValue((product, code), out var kind) ? kind : null;
+
+    /// <returns>(class name, stroke colour) for a line type: its kind's, else the code and a stable colour.</returns>
+    public static (string Name, string Color) ClassifyLine(GarminProduct product, string garminType)
     {
-        if (DefaultLineClasses.TryGetValue(garminType, out var v)) return v;
-        // Stable fallback: derive an index from the hex code so unknown types are
-        // still visually distinct rather than all defaulting to the layer colour.
-        int code = 0;
-        if (garminType.StartsWith("0x") &&
-            int.TryParse(garminType.AsSpan(2), System.Globalization.NumberStyles.HexNumber, null, out var parsed))
-            code = parsed;
+        if (KindOf(product, garminType) is { } kind) return (kind.Kind, kind.Color);
+        TryCode(garminType, out int code);
         return (garminType, Palette[Math.Abs(code) % Palette.Length]);
+    }
+
+    private static bool TryCode(string garminType, out int code)
+    {
+        code = 0;
+        return garminType.StartsWith("0x") &&
+               int.TryParse(garminType.AsSpan(2), System.Globalization.NumberStyles.HexNumber, null, out code);
     }
 }

@@ -3,6 +3,8 @@
 ## master
 ### ✨ Features and improvements
 - _...Add new stuff here..._
+- **Garmin trail maps show what each trail is.** On TrailIntel's ATV and snowmobile maps and GPS Trailmasters' ATV map, each trail is described as GPS Trailmasters' KMZ describes it ("Corridor", "UTV/ATV 60 Inches, No Motorcycles", "Closed ATV Trail"; on the snowmobile map "Provincial / ITS Trail", "Regional Trail", "Danger / Caution") and drawn in its colour (green 60-inch trails, blue corridors, red 50-inch trails, black access roads, grey closed trails). Parking and trailheads get the parking marker, scenic places the scenic marker. See docs/garmin-import.md
+- **Routes keep off trails they may not use.** Closed trails are left out of every route, and trails barring motorcycles out of motorcycle routes, when the trail's data says so: a known Garmin map's trail kind, a KML/GPX description such as GPS Trailmasters' ("Closed ATV Trail", "No Motorcycles", "50 Inches"), or GeoJSON properties `closed`, `no_motorcycles`, `max_width_in`. Any other trail is open to all
 - **Routing updated to MaplibreNative.Routing 0.2.2.** The online "Auto (road)" choice takes highways like any road; the motorcycle and trail choices still avoid them
 - **Routing updated to MaplibreNative.Routing 0.2.1.** Offline routes keep to the main road (no hops through parking lots beside it, as on NH 16 through Pinkham Notch), with no false turns or names flapping at map-tile edges; "turn right to stay on" a road that bends at a junction; travel times are driving times; the first instruction isn't cut off by the next, and the voice no longer cuts itself off
 - **Routing updated to MaplibreNative.Routing 0.2.0.** Start follows the route you chose at once (it no longer plans it again); tap the instruction bar while navigating for the rest of the directions; the bar shows the next turn and the distance to it; a simulated drive follows a reroute (round a closure); long trips load the tiles along the way rather than the box round it. Stopping a simulated drive of a route not yet started goes back to the planned route
@@ -18,6 +20,7 @@
 
 ### 🐞 Bug fixes
 - _...Add new stuff here..._
+- **Garmin POIs and trails have their names.** Most points of interest had garbled names or another place's (a bitcoin ATM among the restaurants), and the main trails of TrailIntel's maps had none: a POI's name is in its POI record, and a routable trail's in its road record, which weren't read
 - **The Windows app opens where you left it**, at the size you left it and maximized if it was. It always opened at the default place and size, which could be partly under the taskbar. It's kept within the screen: a place under the taskbar, or on a monitor no longer there, is moved into view
 - **The route sheet's routing log keeps a line per step.** Each tile downloaded added a line ("Downloading tiles (1254/9180)…", then 1255, ...); a step's progress now updates its own line
 - **Recording a track and navigating at once both keep the GPS.** They share the app's one GPS listener, and each turned it off when it ended: stopping or clearing a route while recording left the recording without positions, and stopping a recording while navigating left navigation without them

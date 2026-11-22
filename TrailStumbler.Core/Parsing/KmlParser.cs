@@ -156,7 +156,8 @@ public class KmlParser : IGisParser
                 stroke: isLine ? style?.Stroke : null,
                 strokeWidth: isLine ? style?.StrokeWidth : null,
                 iconHref: isPoint ? style?.IconHref : null,
-                coordTimes: times);
+                coordTimes: times,
+                access: isLine ? TrailFlags.FromDescription(rawDesc) : default);
             results.Add(pf);
         }
     }
@@ -242,7 +243,8 @@ public class KmlParser : IGisParser
 
     private static string BuildProps(
         string name, string desc, List<(string Key, string Val)> extended,
-        string? stroke, double? strokeWidth, string? iconHref, List<string>? coordTimes)
+        string? stroke, double? strokeWidth, string? iconHref, List<string>? coordTimes,
+        TrailAccess access = default)
     {
         using var ms = new MemoryStream();
         using (var w = new Utf8JsonWriter(ms))
@@ -252,6 +254,7 @@ public class KmlParser : IGisParser
             if (desc.Length > 0) w.WriteString("description", desc);
             if (stroke is not null) w.WriteString("stroke", stroke);
             if (strokeWidth.HasValue) w.WriteNumber("stroke-width", strokeWidth.Value);
+            TrailFlags.Write(w, access);
             if (iconHref is not null)
             {
                 w.WriteString("icon", iconHref);

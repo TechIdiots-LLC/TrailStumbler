@@ -18,6 +18,9 @@ internal sealed class RgnSubfile
     public int DataOff { get; }
     public int DataLen { get; }
 
+    /// <summary>The make of map this is, for what its line types mean.</summary>
+    public GarminProduct Product { get; init; }
+
     public RgnSubfile(byte[] data)
     {
         _data = data;
@@ -105,11 +108,13 @@ internal sealed class RgnSubfile
             string name = labels.Get(inNet ? net?.RoadLabel(lblOff) ?? 0 : lblOff);
             string garminType = $"0x{code:x2}";
 
+            var kind = isLine ? GarminTypeClasses.KindOf(Product, garminType) : null;
             var pf = new ParsedFeature
             {
                 GeometryType = isLine ? "LineString" : "Polygon",
-                PropertiesJson = BuildLineProps(garminType, sub.Zoom, name, isLine),
+                PropertiesJson = BuildLineProps(garminType, sub.Zoom, name, isLine, Product, kind),
                 Name = name,
+                Description = kind?.Kind ?? "",   // as GPS Trailmasters' KMZ describes the trail
             };
             var sb = new StringBuilder();
             if (isLine)
@@ -281,14 +286,22 @@ internal sealed class RgnSubfile
         return sb.ToString();
     }
 
-    private static string BuildLineProps(string garminType, int zoom, string name, bool isLine)
+    private static string BuildLineProps(string garminType, int zoom, string name, bool isLine,
+        GarminProduct product, TrailKind? kind)
     {
         var sb = new StringBuilder();
         sb.Append("{\"garmin_type\":\"").Append(garminType).Append("\",\"zoom\":").Append(zoom);
         if (name.Length > 0) sb.Append(",\"name\":").Append(JsonSerializer.Serialize(name));
+        if (kind is not null)
+        {
+            sb.Append(",\"description\":").Append(JsonSerializer.Serialize(kind.Kind));
+            if (kind.Closed) sb.Append(",\"").Append(TrailFlags.Closed).Append("\":true");
+            if (kind.NoMotorcycles) sb.Append(",\"").Append(TrailFlags.NoMotorcycles).Append("\":true");
+            if (kind.MaxWidthInches is { } inches) sb.Append(",\"").Append(TrailFlags.MaxWidth).Append("\":").Append(inches);
+        }
         if (isLine)
         {
-            var (cls, color) = GarminTypeClasses.ClassifyLine(garminType);
+            var (cls, color) = GarminTypeClasses.ClassifyLine(product, garminType);
             sb.Append(",\"class\":").Append(JsonSerializer.Serialize(cls));
             // Emit the simplestyle "stroke" key the map paint expression reads, so
             // each trail type renders in its own colour (same path as KML import).

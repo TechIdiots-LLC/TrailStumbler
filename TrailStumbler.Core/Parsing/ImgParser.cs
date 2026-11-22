@@ -75,8 +75,11 @@ public class ImgParser : IGisParser
         var results = new List<ParsedFeature>();
         using var img = new ImgFile(stream);
         var tiles = img.MapTiles();
+        var described = img.MapDescriptions();
+        // Which make the map is, for what its line types mean
+        var product = GarminTypeClasses.ProductOf(img.MapSeries.Concat(described.Values));
         // A combined file's background map (roads, water, towns: millions of features) isn't trails
-        var background = _skipBackgroundJunk ? BackgroundMaps(tiles, img.MapDescriptions()) : [];
+        var background = _skipBackgroundJunk ? BackgroundMaps(tiles, described) : [];
         foreach (var name in tiles)
         {
             bool isBackground = background.Contains(name);
@@ -86,7 +89,7 @@ public class ImgParser : IGisParser
             if (treData is null || rgnData is null) continue;
 
             var tre = new TreSubfile(treData);
-            var rgn = new RgnSubfile(rgnData);
+            var rgn = new RgnSubfile(rgnData) { Product = isBackground ? GarminProduct.Unknown : product };
             tre.Finalize(rgn.DataLen);
             var labels = new LabelSubfile(img.ReadSubfile(name, "LBL"));
             var net = new NetSubfile(img.ReadSubfile(name, "NET"));

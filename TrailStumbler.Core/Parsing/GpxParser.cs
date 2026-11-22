@@ -84,8 +84,11 @@ public class GpxParser : IGisParser
         pf.CoordinatesJson = coords.ToString();
         pf.Name = name ?? "";
         pf.Description = DescriptionCleaner.CleanForDisplay(desc ?? "");
+        var access = TrailFlags.FromDescription(desc);
         pf.PropertiesJson = BuildProps(pf.Name, pf.Description,
-            ("coordTimes", times.Count == count ? times : null));
+            ("coordTimes", times.Count == count ? times : null),
+            (TrailFlags.Closed, access.Closed ? true : null), (TrailFlags.NoMotorcycles, access.NoMotorcycles ? true : null),
+            (TrailFlags.MaxWidth, access.MaxWidthInches));
         results.Add(pf);
     }
 
@@ -103,6 +106,12 @@ public class GpxParser : IGisParser
                 {
                     case string s when s.Length > 0:
                         w.WriteString(key, s);
+                        break;
+                    case bool b:
+                        w.WriteBoolean(key, b);
+                        break;
+                    case int i:
+                        w.WriteNumber(key, i);
                         break;
                     case List<string> list when list.Count > 0:
                         w.WriteStartArray(key);

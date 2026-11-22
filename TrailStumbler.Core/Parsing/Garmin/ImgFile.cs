@@ -182,6 +182,7 @@ internal sealed class ImgFile : IDisposable
     public IReadOnlyDictionary<string, string> MapDescriptions()
     {
         var names = new Dictionary<string, string>();
+        _series.Clear();
         foreach (var ((_, typ), sf) in _subfiles)
         {
             if (typ != "MPS") continue;
@@ -204,7 +205,7 @@ internal sealed class ImgFile : IDisposable
                         p = end + 1;
                         return s;
                     }
-                    Next();                       // the series ("GPS Trailmasters ATV New England V12.00")
+                    _series.Add(Next());          // the series ("GPS Trailmasters ATV New England V12.00")
                     names[map.ToString("D8")] = Next();
                 }
                 o = body + len;
@@ -212,6 +213,11 @@ internal sealed class ImgFile : IDisposable
         }
         return names;
     }
+
+    private readonly HashSet<string> _series = new();
+
+    /// <summary>The series names of the file's maps, read by <see cref="MapDescriptions"/>.</summary>
+    public IReadOnlyCollection<string> MapSeries => _series;
 
     public byte[]? ReadSubfile(string name, string typ)
         => _subfiles.TryGetValue((name, typ), out var sf) ? sf.Read(this) : null;

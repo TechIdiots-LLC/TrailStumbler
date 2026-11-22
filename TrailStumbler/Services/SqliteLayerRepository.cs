@@ -252,7 +252,14 @@ public class SqliteLayerRepository : ILayerRepository, IRouteDataSource
 
     // ── IRouteDataSource ─────────────────────────────────────────────────────
 
-    public async Task<IReadOnlyList<TrackFeature>> GetRoutableTrackFeaturesAsync()
+    public Task<IReadOnlyList<TrackFeature>> GetRoutableTrackFeaturesAsync() =>
+        GetRoutableTrackFeaturesAsync(Core.Parsing.TrailVehicle.Any);
+
+    /// <summary>
+    /// The trails a route ridden on <paramref name="vehicle"/> may use: all of them, but those whose data says
+    /// they're closed, closed to motorcycles, or narrower than the vehicle (<see cref="Core.Parsing.TrailAccess"/>).
+    /// </summary>
+    public async Task<IReadOnlyList<TrackFeature>> GetRoutableTrackFeaturesAsync(Core.Parsing.TrailVehicle vehicle)
     {
         var db = await GetDbAsync();
         // Include any visible line layer that has routing enabled.
@@ -274,6 +281,7 @@ public class SqliteLayerRepository : ILayerRepository, IRouteDataSource
 
             foreach (var feature in features)
             {
+                if (!Core.Parsing.TrailFlags.FromProperties(feature.PropertiesJson).Allows(vehicle)) continue;
                 try
                 {
                     var raw = JsonSerializer.Deserialize<double[][]>(feature.CoordinatesJson);
