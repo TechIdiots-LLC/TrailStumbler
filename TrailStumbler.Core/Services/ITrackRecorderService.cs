@@ -16,4 +16,13 @@ public interface ITrackRecorderService
     Task<MapLayer?> StopAndSaveAsync();
 
     Task DiscardAsync();
+
+    /// <summary>
+    /// The app has one GPS listener, which navigation uses too: while this says it's still needed, recording's end
+    /// leaves it running.
+    /// </summary>
+    Func<bool>? GpsStillNeeded { get; set; }
+
+    /// <summary>While recording, starts the GPS listener again if something else (navigation) stopped it.</summary>
+    Task ResumeGpsAsync();
 }

@@ -29,6 +29,8 @@ public partial class TrackRecorderService : ITrackRecorderService
 
     public event EventHandler<IReadOnlyList<RecordingPoint>>? TrackUpdated;
 
+    public Func<bool>? GpsStillNeeded { get; set; }
+
     public TrackRecorderService(ILayerRepository repo) => _repo = repo;
 
     public async Task StartAsync(string sessionName)
@@ -50,13 +52,21 @@ public partial class TrackRecorderService : ITrackRecorderService
         StartPlatformService();
 
         Geolocation.LocationChanged += OnLocationChanged;
-        if (!Geolocation.IsListeningForeground)
-        {
-            var req = new GeolocationListeningRequest(GeolocationAccuracy.Best, TimeSpan.FromSeconds(1));
-            bool started = await Geolocation.StartListeningForegroundAsync(req);
-            if (!started)
-                Debug.WriteLine("[TrackRecorderService] StartListeningForegroundAsync returned false");
-        }
+        await StartGpsAsync();
+    }
+
+    public async Task ResumeGpsAsync()
+    {
+        if (IsRecording) await StartGpsAsync();
+    }
+
+    private static async Task StartGpsAsync()
+    {
+        if (Geolocation.IsListeningForeground) return;
+        var req = new GeolocationListeningRequest(GeolocationAccuracy.Best, TimeSpan.FromSeconds(1));
+        bool started = await Geolocation.StartListeningForegroundAsync(req);
+        if (!started)
+            Debug.WriteLine("[TrackRecorderService] StartListeningForegroundAsync returned false");
     }
 
     public async Task<MapLayer?> StopAndSaveAsync()
@@ -81,7 +91,7 @@ public partial class TrackRecorderService : ITrackRecorderService
     private void StopListening()
     {
         Geolocation.LocationChanged -= OnLocationChanged;
-        if (Geolocation.IsListeningForeground)
+        if (Geolocation.IsListeningForeground && GpsStillNeeded?.Invoke() != true)
             Geolocation.StopListeningForeground();
         IsRecording = false;
         StopPlatformService();

@@ -204,6 +204,8 @@ public partial class MapViewModel : ObservableObject
         _session = services.GetRequiredService<NavigationSession>();
         _session.ProgressUpdated += OnProgressUpdated;
         _session.AnnouncementNeeded += OnAnnouncementNeeded;
+        // One GPS listener for the app: navigation's end (or a simulated drive) stops it, recording's leaves it on
+        _recorder.GpsStillNeeded = () => _session.IsNavigating && !_session.IsSimulating;
     }
 
     private static string SourceId(int layerId) => $"trail-src-{layerId}";
@@ -776,6 +778,7 @@ public partial class MapViewModel : ObservableObject
         // Always stop any active session first so the overlay is cleared and the
         // Geolocation listener is removed before we accept new pins.
         await _session.StopAsync();
+        await _recorder.ResumeGpsAsync();
         IsNavigating = false;
         CurrentProgress = null;
         HasHighwayWarning = false;
@@ -922,6 +925,7 @@ public partial class MapViewModel : ObservableObject
     private async Task StopNavigationAsync()
     {
         await _session.StopAsync();
+        await _recorder.ResumeGpsAsync();
         IsNavigating = false;
         CurrentProgress = null;
         HasHighwayWarning = false;
