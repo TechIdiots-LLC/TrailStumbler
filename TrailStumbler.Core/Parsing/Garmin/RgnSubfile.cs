@@ -76,7 +76,7 @@ internal sealed class RgnSubfile
 
     private IEnumerable<ParsedFeature> DecodePolys(
         int o, int end, TreSubfile.Subdivision sub, bool isLine,
-        LabelSubfile labels, HashSet<int>? typeFilter, HashSet<int>? excludeTypes)
+        LabelSubfile labels, HashSet<int>? typeFilter, HashSet<int>? excludeTypes, NetSubfile? net = null)
     {
         var d = _data;
         while (o < end)
@@ -101,7 +101,8 @@ internal sealed class RgnSubfile
             var pts = PolylinePoints(sub, dx, dy, extra, info, d, bstreamOff, blen);
             if (pts.Count < 2) continue;
 
-            string name = inNet ? "" : labels.Get(lblOff);
+            // A routable line's name is in its NET road record
+            string name = labels.Get(inNet ? net?.RoadLabel(lblOff) ?? 0 : lblOff);
             string garminType = $"0x{code:x2}";
 
             var pf = new ParsedFeature
@@ -137,7 +138,10 @@ internal sealed class RgnSubfile
             int typ = d[o]; o += 1;
             int pinfo = d[o] | (d[o + 1] << 8) | (d[o + 2] << 16); o += 3;
             bool hasSub = (pinfo & 0x800000) != 0;
-            int lblOff = pinfo & 0x1FFFFF;
+            // A POI's label field addresses its POI properties record, which holds the label (mkgmap's Point.write)
+            bool isPoi = (pinfo & 0x400000) != 0;
+            int lblOff = pinfo & 0x3FFFFF;
+            if (isPoi) lblOff = labels.PoiLabel(lblOff);
             int dx = ByteOps.S16(d, o); o += 2;
             int dy = ByteOps.S16(d, o); o += 2;
             int subtype = hasSub ? d[o] : 0;
@@ -177,7 +181,7 @@ internal sealed class RgnSubfile
     public IEnumerable<ParsedFeature> DecodeSubdivision(
         TreSubfile.Subdivision sub, LabelSubfile labels,
         bool wantPoints, bool wantLines, bool wantAreas, HashSet<int>? typeFilter,
-        HashSet<int>? cloudPointTypes = null, HashSet<int>? excludePolygonTypes = null)
+        HashSet<int>? cloudPointTypes = null, HashSet<int>? excludePolygonTypes = null, NetSubfile? net = null)
     {
         byte el = sub.Elements;
         if (el == 0 || sub.RgnStart == sub.RgnEnd) yield break;
@@ -220,7 +224,7 @@ internal sealed class RgnSubfile
         if (wantLines && (el & TreSubfile.ElemLine) != 0)
         {
             int end = NonZero(opgon, eoff);
-            foreach (var f in DecodePolys(opline, end, sub, true, labels, typeFilter, excludeTypes: null)) yield return f;
+            foreach (var f in DecodePolys(opline, end, sub, true, labels, typeFilter, excludeTypes: null, net)) yield return f;
         }
         if (wantAreas && (el & TreSubfile.ElemPolygon) != 0)
         {

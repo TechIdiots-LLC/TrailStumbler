@@ -22,6 +22,11 @@ internal sealed class LabelSubfile
     private readonly int _dataLen;
     private readonly int _mult;
     private readonly int _coding;
+    // POI properties: a point flagged as a POI addresses one of these records, which holds its label (and maybe its
+    // address and phone); LBL header 0x57 offset, 0x5B length, 0x5F offset multiplier
+    private readonly int _poiOff;
+    private readonly int _poiLen;
+    private readonly int _poiMult;
 
     /// <summary>Logical offsets at which a real, packed label record begins. A
     /// point/line whose label offset is not one of these is pointing into the
@@ -39,6 +44,21 @@ internal sealed class LabelSubfile
         _dataLen = (int)ByteOps.U32(_data, 0x19);
         _mult = _data[0x1D];    // label address multiplier
         _coding = _data[0x1E];  // 6 = 6-bit, else treated as 8-bit
+        if (ByteOps.U16(_data, 0) >= 0x61 && _data.Length >= 0x61)
+        {
+            _poiOff = (int)ByteOps.U32(_data, 0x57);
+            _poiLen = (int)ByteOps.U32(_data, 0x5B);
+            _poiMult = _data[0x5F];
+        }
+    }
+
+    /// <summary>The label offset of a POI properties record (its first 3 bytes, low 22 bits), or 0 when there's none.</summary>
+    public int PoiLabel(int poiOffset)
+    {
+        if (!_ok || _poiLen == 0) return 0;
+        long p = _poiOff + ((long)poiOffset << _poiMult);
+        if (p < _poiOff || p + 3 > Math.Min(_data.Length, (long)_poiOff + _poiLen)) return 0;
+        return ByteOps.U24(_data, (int)p) & 0x3FFFFF;
     }
 
     public string Get(int offset)

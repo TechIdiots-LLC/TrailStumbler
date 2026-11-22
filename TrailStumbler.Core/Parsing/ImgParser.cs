@@ -89,6 +89,7 @@ public class ImgParser : IGisParser
             var rgn = new RgnSubfile(rgnData);
             tre.Finalize(rgn.DataLen);
             var labels = new LabelSubfile(img.ReadSubfile(name, "LBL"));
+            var net = new NetSubfile(img.ReadSubfile(name, "NET"));
 
             foreach (var sub in tre.Subdivisions)
             {
@@ -97,7 +98,7 @@ public class ImgParser : IGisParser
                              sub, labels, wantPoints: true, wantLines: true,
                              wantAreas: true, typeFilter: null,
                              cloudPointTypes: _skipBackgroundJunk ? CloudPointTypes : null,
-                             excludePolygonTypes: _skipBackgroundJunk ? JunkPolygonTypes : null))
+                             excludePolygonTypes: _skipBackgroundJunk ? JunkPolygonTypes : null, net: net))
                 {
                     if (isBackground) feat.Group = ParsedFeature.BackgroundGroup;
                     results.Add(feat);
