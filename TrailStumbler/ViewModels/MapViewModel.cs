@@ -50,7 +50,11 @@ public partial class MapViewModel : ObservableObject
 
     [ObservableProperty] private string _styleUrl = MapStyles.StyleUrl;
     [ObservableProperty] private string _statusMessage = "";
-    [ObservableProperty] private bool _isRecording;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RecordButtonText))]
+    private bool _isRecording;
+    public string RecordButtonText => IsRecording ? "■" : "●";
+    private DateTime _recordingStartedAt;
     [ObservableProperty] private string _recordingStatus = "";
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(LabelsButtonText))]
@@ -387,7 +391,8 @@ public partial class MapViewModel : ObservableObject
             var name = $"Track {DateTime.Now:yyyy-MM-dd HH:mm}";
             await _recorder.StartAsync(name);
             IsRecording = true;
-            RecordingStatus = "Recording… 0 pts";
+            _recordingStartedAt = DateTime.UtcNow;
+            RecordingStatus = "Recording · waiting for GPS";
         }
         catch (Exception ex)
         {
@@ -420,13 +425,26 @@ public partial class MapViewModel : ObservableObject
             Debug.WriteLine($"[MapViewModel] StopRecording threw: {ex}");
             RecordingStatus = $"Save failed: {ex.Message}";
         }
+        _ = ClearRecordingStatusSoonAsync();
+    }
+
+    /// <summary>The saved / discarded message goes after a few seconds, unless recording again.</summary>
+    private async Task ClearRecordingStatusSoonAsync()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(6));
+        if (!IsRecording) RecordingStatus = "";
     }
 
     // Called by ITrackRecorderService.TrackUpdated on the main thread, throttled ≥2 s.
     private void OnTrackUpdated(object? sender, IReadOnlyList<RecordingPoint> points)
     {
         _liveRecordingPoints = points;
-        RecordingStatus = $"Recording… {points.Count} pts";
+        double meters = 0;
+        for (int i = 1; i < points.Count; i++)
+            meters += HaversineM(points[i - 1].Lat, points[i - 1].Lon, points[i].Lat, points[i].Lon);
+        var elapsed = DateTime.UtcNow - _recordingStartedAt;
+        RecordingStatus = $"Recording · {(int)elapsed.TotalHours}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2} · " +
+                          (meters >= 1000 ? $"{meters / 1000:F1} km" : $"{meters:F0} m");
         if (points.Count >= 2)
             UpdateRecordingLineOnMap(points);
     }

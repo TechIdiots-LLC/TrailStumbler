@@ -111,6 +111,33 @@
             </Button.Triggers>
         </Button>
 
+        <!-- Record a track: the button, and while recording how long and how far -->
+        <HorizontalStackLayout Grid.Row="0"
+                               VerticalOptions="End" HorizontalOptions="End"
+                               Margin="0,0,10,84" Spacing="8">
+            <Border Padding="10,6"
+                    BackgroundColor="#CC000000"
+                    StrokeShape="RoundRectangle 14"
+                    Stroke="Transparent"
+                    VerticalOptions="Center"
+                    IsVisible="{Binding RecordingStatus, Converter={StaticResource IsNotNullOrEmpty}}">
+                <Label Text="{Binding RecordingStatus}" TextColor="White" FontSize="12" />
+            </Border>
+            <Button Text="{Binding RecordButtonText}"
+                    Command="{Binding ToggleRecordingCommand}"
+                    SemanticProperties.Description="Record a track"
+                    WidthRequest="48" HeightRequest="48" CornerRadius="24" Padding="0"
+                    FontSize="20"
+                    BackgroundColor="#D32F2F" TextColor="White">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsRecording}" Value="False">
+                        <Setter Property="BackgroundColor" Value="White" />
+                        <Setter Property="TextColor" Value="#D32F2F" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+        </HorizontalStackLayout>
+
         <!-- Pull-up route planner sheet. It sizes to its content; code-behind slides it up and down, and caps the
              content's height (scrolling beyond) so the map stays usable. Its header shows while it's tucked away. -->
         <Border x:Name="RouteSheet"
