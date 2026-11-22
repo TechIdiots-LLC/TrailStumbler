@@ -80,26 +80,32 @@ public partial class MapViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(OriginLabel))]
+    [NotifyPropertyChangedFor(nameof(RouteSummary))]
     private (double Lat, double Lon)? _origin;
     partial void OnOriginChanged((double Lat, double Lon)? value) => UpdateWaypointPinsOnMap();
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DestinationLabel))]
+    [NotifyPropertyChangedFor(nameof(RouteSummary))]
     private (double Lat, double Lon)? _destination;
     partial void OnDestinationChanged((double Lat, double Lon)? value) => UpdateWaypointPinsOnMap();
 
     // true while the user is actively placing that pin (next map tap drops it)
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsPlacingPin))]
+    [NotifyPropertyChangedFor(nameof(RouteSummary))]
     private bool _isPlacingOrigin;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsPlacingPin))]
+    [NotifyPropertyChangedFor(nameof(RouteSummary))]
     private bool _isPlacingDestination;
 
     [ObservableProperty] private bool _originSnapped;
     [ObservableProperty] private bool _destinationSnapped;
-    [ObservableProperty] private bool _isNavigating;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RouteSummary))]
+    private bool _isNavigating;
     [ObservableProperty] private RouteProgress? _currentProgress;
     [ObservableProperty] private string _routeStatusMessage = "";
     [ObservableProperty] private bool _hasHighwayWarning;
@@ -122,6 +128,15 @@ public partial class MapViewModel : ObservableObject
     private void DecreaseRouteCount() { if (_routeCount > 1) RouteCount--; }
 
     public bool IsPlacingPin => _isPlacingOrigin || _isPlacingDestination;
+
+    /// <summary>One line for the route sheet's header, readable while it's tucked away.</summary>
+    public string RouteSummary =>
+        _isNavigating ? "Navigating"
+        : IsPlacingPin ? $"Tap the map to place {(_isPlacingOrigin ? "A" : "B")}"
+        : _origin is null && _destination is null ? "Set A and B, or long-press the map"
+        : _origin is null ? "Set A"
+        : _destination is null ? "Set B"
+        : "A and B set: plan the route";
 
     public string OriginLabel => _origin is null
         ? "Tap map to place A"

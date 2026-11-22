@@ -14,15 +14,15 @@ namespace TrailStumbler.Views;
 public partial class MapPage : ContentPage
 {
     private const string LogTag = "[MapPage]";
-    private const double SheetCollapsedH    = 56;
-    private const double SheetBaseExpandedH = 260;   // base with stepper row
-    private const double SheetRouteCardH    = 52;    // height per route option card
+    private const double SheetMaxShare = 0.6;   // the open sheet's content takes at most this much of the page
 
     private readonly MapViewModel _vm;
     private bool _mapReadyFired;
     private bool _styleLoadedFired;
     private bool _firstAppearLogged;
     private bool _sheetExpanded;
+    private bool _reopenAfterPin;   // the sheet was tucked away to place a pin; open it again once it's placed
+    private long _lastSheetToggle;  // one tap can arrive twice (on Windows a click was seen to); the second is ignored
 
     public MapPage(MapViewModel vm)
     {
@@ -59,14 +59,15 @@ public partial class MapPage : ContentPage
 
                 await _vm.PlacePinAsync(e.LatLng.Latitude, e.LatLng.Longitude);
 
-                // Auto-expand the sheet so pins are visible.
+                // Open the sheet, so the pins set are shown.
                 if (!_sheetExpanded)
-                    ExpandSheet();
+                    await ExpandSheetAsync();
             }
             catch (Exception ex) { Log($"OnMapLongClick threw: {ex}"); }
         };
 
         _vm.PropertyChanged += OnVmPropertyChanged;
+        SizeChanged += (_, _) => SheetScroll.MaximumHeightRequest = Math.Max(160, Height * SheetMaxShare);
     }
 
     private void OnMapReady(object? sender, EventArgs e)
@@ -204,43 +205,73 @@ public partial class MapPage : ContentPage
             NavPanel.SetHighwayWarning(
                 _vm.HasHighwayWarning ? _vm.CurrentProgress?.Route.HighwayWarning : null);
         }
-        else if (e.PropertyName == nameof(MapViewModel.HasRouteOptions) && _sheetExpanded)
+        else if (e.PropertyName == nameof(MapViewModel.IsPlacingPin) && !_vm.IsPlacingPin && _reopenAfterPin)
         {
-            AnimateSheet(ComputeExpandedH());
+            // The pin is placed: back to the planner
+            _reopenAfterPin = false;
+            _ = ExpandSheetAsync();
         }
     }
 
-    private double ComputeExpandedH()
-        => SheetBaseExpandedH + _vm.RouteOptions.Count * SheetRouteCardH;
+    // ── Route sheet: tucked away to its header, or open ──────────────────────────
+    // It sizes to its content (capped, scrolling beyond), and slides rather than resizing, so nothing in it is
+    // ever squeezed or cut off.
 
-    // ── Sheet expand / collapse ───────────────────────────────────────────────
-
-    private void OnSheetHandleClicked(object? sender, EventArgs e)
+    private void OnSheetHeaderTapped(object? sender, EventArgs e)
     {
-        if (_sheetExpanded) CollapseSheet(); else ExpandSheet();
+        if (!TakeToggle()) return;
+        _ = _sheetExpanded ? CollapseSheetAsync() : ExpandSheetAsync();
     }
 
-    private void ExpandSheet()
+    private void OnSheetSwipedUp(object? sender, SwipedEventArgs e)
     {
+        if (TakeToggle()) _ = ExpandSheetAsync();
+    }
+
+    private void OnSheetSwipedDown(object? sender, SwipedEventArgs e)
+    {
+        if (TakeToggle()) _ = CollapseSheetAsync();
+    }
+
+    /// <summary>Whether a tap or swipe may open or close the sheet: not within half a second of the last.</summary>
+    private bool TakeToggle()
+    {
+        long now = Environment.TickCount64;
+        if (now - _lastSheetToggle < 500) return false;
+        _lastSheetToggle = now;
+        return true;
+    }
+
+    /// <summary>Set A / Set B: the sheet makes way for the map until the pin is placed.</summary>
+    private void OnPlacePinClicked(object? sender, EventArgs e)
+    {
+        if (!_sheetExpanded) return;
+        _reopenAfterPin = true;
+        _ = CollapseSheetAsync();
+    }
+
+    private async Task ExpandSheetAsync()
+    {
+        if (_sheetExpanded) return;
         _sheetExpanded = true;
-        SheetHandle.Text = "⌄";
-        SheetContent.IsVisible = true;
-        AnimateSheet(ComputeExpandedH());
+        SheetChevron.Text = "▼";
+        SheetScroll.IsVisible = true;
+        // From where its header sat, up to its full height
+        double rise = Math.Min(SheetScroll.Measure(RouteSheet.Width, double.PositiveInfinity).Height,
+            SheetScroll.MaximumHeightRequest);
+        RouteSheet.TranslationY = rise;
+        await RouteSheet.TranslateToAsync(0, 0, 200, Easing.CubicOut);
     }
 
-    private void CollapseSheet()
+    private async Task CollapseSheetAsync()
     {
+        if (!_sheetExpanded) return;
         _sheetExpanded = false;
-        SheetHandle.Text = "⌃";
-        SheetContent.IsVisible = false;
-        AnimateSheet(SheetCollapsedH);
-    }
-
-    private void AnimateSheet(double targetH)
-    {
-        var from = RouteSheet.HeightRequest;
-        new Animation(v => RouteSheet.HeightRequest = v, from, targetH)
-            .Commit(this, "SheetResize", length: 200, easing: Easing.CubicOut);
+        SheetChevron.Text = "▲";
+        await RouteSheet.TranslateToAsync(0, SheetScroll.Height, 180, Easing.CubicIn);
+        if (_sheetExpanded) return;   // opened again meanwhile
+        SheetScroll.IsVisible = false;
+        RouteSheet.TranslationY = 0;
     }
 
     private static void Log(string msg)

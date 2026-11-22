@@ -7,6 +7,7 @@
 
 ### 🐞 Bug fixes
 - _...Add new stuff here..._
+- **The route planner sheet fits on the screen** — its rows were fixed at 36 pixels while the buttons and the travel-mode picker take at least 44, so Place A/B, Plan Route, Clear and the picker were cut off at the bottom. The sheet now sizes to what it holds, slides up and down rather than squeezing, and scrolls past 60% of the screen (a long routing log no longer runs off it). Its header shows "Route" and what's set ("Set B", "Tap the map to place A") while it's tucked away; tap or swipe it to open and close. **Set A** / **Set B** tuck the sheet away so the map can be tapped, and open it again once the pin is placed. It follows the dark theme, as the tap-to-inspect popup now does, and that popup sits above the sheet's header rather than behind it
 - **Map renderer updated to MapLibreNative.Maui.Handlers 5.0.0-pre.4** (from 4.2.1). What changes on the map:
   - The GPS control is two buttons. The top one cycles Off → Show → Follow, and the bottom one cycles the map's direction: free, north up, or turning with your heading. Dragging the map while following drops back to Show.
   - The compass button resets the tilt as well as the direction.
