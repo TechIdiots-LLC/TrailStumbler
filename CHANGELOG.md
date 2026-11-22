@@ -3,6 +3,7 @@
 ## master
 ### ✨ Features and improvements
 - _...Add new stuff here..._
+- **Route by ATV or UTV.** The route planner's travel choices add **Hybrid ATV (offline)** and **Hybrid UTV (offline)** beside hybrid moto: the same trails-and-roads routing, with the trails each may use. A motorcycle keeps off trails that bar motorcycles, an ATV (50 in) may use those, a UTV (60 in) keeps off 50-inch trails too; none takes a closed trail
 - **Garmin trail maps show what each trail is.** On TrailIntel's ATV and snowmobile maps and GPS Trailmasters' ATV map, each trail is described as GPS Trailmasters' KMZ describes it ("Corridor", "UTV/ATV 60 Inches, No Motorcycles", "Closed ATV Trail"; on the snowmobile map "Provincial / ITS Trail", "Regional Trail", "Danger / Caution") and drawn in its colour (green 60-inch trails, blue corridors, red 50-inch trails, black access roads, grey closed trails). Parking and trailheads get the parking marker, scenic places the scenic marker. See docs/garmin-import.md
 - **Routes keep off trails they may not use.** Closed trails are left out of every route, and trails barring motorcycles out of motorcycle routes, when the trail's data says so: a known Garmin map's trail kind, a KML/GPX description such as GPS Trailmasters' ("Closed ATV Trail", "No Motorcycles", "50 Inches"), or GeoJSON properties `closed`, `no_motorcycles`, `max_width_in`. Any other trail is open to all
 - **Routing updated to MaplibreNative.Routing 0.2.2.** The online "Auto (road)" choice takes highways like any road; the motorcycle and trail choices still avoid them

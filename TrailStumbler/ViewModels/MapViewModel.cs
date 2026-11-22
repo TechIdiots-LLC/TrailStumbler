@@ -199,36 +199,33 @@ public partial class MapViewModel : ObservableObject
     // Profile list shown in the route planner picker.
     // HybridOffline variants appear first; they use MVT tiles from the basemap's
     // "openmaptiles" source so no external server is required at route-plan time.
-    public static readonly string[] ProfileNames =
+    /// <summary>A way to travel in the route planner: how roads are costed (the profile), and what's ridden, for which trails.</summary>
+    private sealed record TravelMode(string Name, RouteProfile Profile, Core.Parsing.TrailVehicle Vehicle);
+
+    // HybridOffline first: they route over the basemap's "openmaptiles" roads, no server needed. ATV and UTV cost
+    // roads as a motorcycle does; they differ in the trails they may use (Core.Parsing.TrailAccess).
+    private static readonly TravelMode[] TravelModes =
     [
-        "Hybrid moto (offline)",   // HybridOfflineMotorcycle — default
-        "Hybrid bike (offline)",   // HybridOfflineBicycle
-        "Trails only",             // TrackOnly
-        "Hybrid moto (online)",    // HybridMotorcycle — Valhalla
-        "Hybrid bike (online)",    // HybridBicycle
-        "Auto (road)",
-        "Motorcycle (road)",
-        "Bicycle (road)",
-        "Walking",
+        new("Hybrid moto (offline)", RouteProfile.HybridOfflineMotorcycle, Core.Parsing.TrailVehicle.Motorcycle),   // default
+        new("Hybrid ATV (offline)",  RouteProfile.HybridOfflineMotorcycle, Core.Parsing.TrailVehicle.Atv),
+        new("Hybrid UTV (offline)",  RouteProfile.HybridOfflineMotorcycle, Core.Parsing.TrailVehicle.Utv),
+        new("Hybrid bike (offline)", RouteProfile.HybridOfflineBicycle,    Core.Parsing.TrailVehicle.Any),
+        new("Trails only",           RouteProfile.TrackOnly,               Core.Parsing.TrailVehicle.Any),
+        new("Hybrid moto (online)",  RouteProfile.HybridMotorcycle,        Core.Parsing.TrailVehicle.Motorcycle),
+        new("Hybrid bike (online)",  RouteProfile.HybridBicycle,           Core.Parsing.TrailVehicle.Any),
+        new("Auto (road)",           RouteProfile.Auto,                    Core.Parsing.TrailVehicle.Any),
+        new("Motorcycle (road)",     RouteProfile.Motorcycle,              Core.Parsing.TrailVehicle.Motorcycle),
+        new("Bicycle (road)",        RouteProfile.Bicycle,                 Core.Parsing.TrailVehicle.Any),
+        new("Walking",               RouteProfile.Pedestrian,              Core.Parsing.TrailVehicle.Any),
     ];
 
-    private static readonly RouteProfile[] ProfileValues =
-    [
-        RouteProfile.HybridOfflineMotorcycle,
-        RouteProfile.HybridOfflineBicycle,
-        RouteProfile.TrackOnly,
-        RouteProfile.HybridMotorcycle,
-        RouteProfile.HybridBicycle,
-        RouteProfile.Auto,
-        RouteProfile.Motorcycle,
-        RouteProfile.Bicycle,
-        RouteProfile.Pedestrian,
-    ];
+    // The route planner's picker
+    public static readonly string[] ProfileNames = TravelModes.Select(m => m.Name).ToArray();
 
-    private RouteProfile SelectedProfile
-        => _selectedProfileIndex >= 0 && _selectedProfileIndex < ProfileValues.Length
-            ? ProfileValues[_selectedProfileIndex]
-            : RouteProfile.HybridOfflineMotorcycle;
+    private TravelMode SelectedMode =>
+        _selectedProfileIndex >= 0 && _selectedProfileIndex < TravelModes.Length ? TravelModes[_selectedProfileIndex] : TravelModes[0];
+
+    private RouteProfile SelectedProfile => SelectedMode.Profile;
 
     // Cached MVT TileJSON URL derived from the "openmaptiles" source in the loaded style.
     // Populated once by FetchMvtTileUrlAsync; required for HybridOffline/Offline profiles.
@@ -1021,10 +1018,8 @@ public partial class MapViewModel : ObservableObject
                 RouteStatusMessage = string.Join("\n", routeLog);
             });
             // The trails the vehicle may use: not those whose data says closed, closed to it, or too narrow
-            var vehicle = profile is RouteProfile.HybridOfflineMotorcycle or RouteProfile.HybridMotorcycle or RouteProfile.Motorcycle
-                ? Core.Parsing.TrailVehicle.Motorcycle : Core.Parsing.TrailVehicle.Any;
             var tracks = _dataSource is SqliteLayerRepository repo
-                ? await repo.GetRoutableTrackFeaturesAsync(vehicle)
+                ? await repo.GetRoutableTrackFeaturesAsync(SelectedMode.Vehicle)
                 : await _dataSource.GetRoutableTrackFeaturesAsync();
             var opts = new RouteOptions
             {
