@@ -71,13 +71,17 @@ public partial class MapPage : ContentPage
         Map.SizeChanged += (_, _) => UpdateCameraViewport();
         NavPanel.SizeChanged += (_, _) => UpdateCameraViewport();
         RouteSheet.SizeChanged += (_, _) => UpdateCameraViewport();
+        // The map ends where the folded sheet begins, so nothing of it (the attribution, its bottom edge) is under
+        // the sheet; the open sheet slides up over it
+        SheetHeader.SizeChanged += (_, _) => Map.Margin = new Thickness(0, 0, 0, Math.Max(0, SheetHeader.Height));
     }
 
     /// <summary>The navigation camera frames the road ahead in the map left between the instruction panel and the sheet.</summary>
     private void UpdateCameraViewport()
     {
         double top = NavPanel.IsVisible ? NavPanel.Height : 0;
-        double bottom = _sheetExpanded ? RouteSheet.Height : SheetHeader.Height;
+        // The map stops at the folded sheet; only the open sheet covers it
+        double bottom = _sheetExpanded ? RouteSheet.Height - SheetHeader.Height : 0;
         _vm.SetMapViewport(Map.Width, Map.Height, Math.Max(0, top), Math.Max(0, bottom));
     }
 

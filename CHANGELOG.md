@@ -22,6 +22,7 @@
 
 ### 🐞 Bug fixes
 - _...Add new stuff here..._
+- **The map ends above the route sheet.** It ran on under the sheet's header, which hid its bottom edge and the attribution button; the open sheet still slides up over the map
 - **Garmin POIs and trails have their names.** Most points of interest had garbled names or another place's (a bitcoin ATM among the restaurants), and the main trails of TrailIntel's maps had none: a POI's name is in its POI record, and a routable trail's in its road record, which weren't read
 - **The Windows app opens where you left it**, at the size you left it and maximized if it was. It always opened at the default place and size, which could be partly under the taskbar. It's kept within the screen: a place under the taskbar, or on a monitor no longer there, is moved into view
 - **The route sheet's routing log keeps a line per step.** Each tile downloaded added a line ("Downloading tiles (1254/9180)…", then 1255, ...); a step's progress now updates its own line
