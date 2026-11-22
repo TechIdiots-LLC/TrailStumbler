@@ -3,6 +3,7 @@
 ## master
 ### ✨ Features and improvements
 - _...Add new stuff here..._
+- **Routing updated to MaplibreNative.Routing 0.1.0** (from 0.0.13). The offline hybrid modes now route over your trails and the map's roads as one network: a trip can start on a road, take a trail, leave it by road round a gap and rejoin it, and a trail end within 50 m of a road is joined to it. Hybrid moto prefers the trails, taking rural roads before bigger ones only where it has to. Road names come in whole, not cut at tile edges
 - **3D terrain button on the map** — a button above the zoom controls turns 3D terrain on and off, as in VistumblerMAUI. On the WifiDB Color Relief styles it uses the style's own elevation data; on a style without any, such as WifiDB OSM or a custom style, the app adds WifiDB's terrain. Tilt the map to see the hills: drag up or down with two fingers on Android.
 
 ### 🐞 Bug fixes
