@@ -995,12 +995,15 @@ public partial class MapViewModel : ObservableObject
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(90));
-            var routeLog = new System.Text.StringBuilder();
+            // A line per step; a step's own progress ("Downloading tiles (12/40)…") updates its line
+            var routeLog = new List<string>();
+            static string Stage(string line) => line.IndexOf('(') is > 0 and var at ? line[..at].TrimEnd() : line;
             var routeProgress = new Progress<string>(msg =>
             {
                 Debug.WriteLine($"[Route] {msg}");
-                routeLog.AppendLine(msg);
-                RouteStatusMessage = routeLog.ToString().TrimEnd();
+                if (routeLog.Count > 0 && Stage(routeLog[^1]) == Stage(msg)) routeLog[^1] = msg;
+                else routeLog.Add(msg);
+                RouteStatusMessage = string.Join("\n", routeLog);
             });
             var tracks = await _dataSource.GetRoutableTrackFeaturesAsync();
             var opts = new RouteOptions
@@ -1018,8 +1021,8 @@ public partial class MapViewModel : ObservableObject
             var route = await _session.StartAsync(opts, maxRoutes: _routeCount);
             if (route is null)
             {
-                routeLog.AppendLine("No route found");
-                RouteStatusMessage = routeLog.ToString().TrimEnd();
+                routeLog.Add("No route found");
+                RouteStatusMessage = string.Join("\n", routeLog);
                 return;
             }
 
