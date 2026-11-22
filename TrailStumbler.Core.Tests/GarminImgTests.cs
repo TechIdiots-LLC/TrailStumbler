@@ -24,6 +24,46 @@ public class GarminHelperTests
         Assert.Equal(0b1011, br.Get(4));
     }
 
+    /// <summary>Bits written LSB-first, as Garmin's bitstreams are.</summary>
+    internal static byte[] Bits(params (int Value, int Width)[] fields)
+    {
+        var bits = new List<bool>();
+        foreach (var (v, w) in fields) for (int k = 0; k < w; k++) bits.Add(((v >> k) & 1) != 0);
+        var bytes = new byte[(bits.Count + 7) / 8];
+        for (int i = 0; i < bits.Count; i++) if (bits[i]) bytes[i / 8] |= (byte)(1 << (i % 8));
+        return bytes;
+    }
+
+    [Fact]
+    public void ASignedDeltaTooBigForItsBitsIsReadThroughItsEscapes()
+    {
+        // 4 bits: top 8, mask 7. +10 is written 8 (escape: +7) then 3; -10 is 8 then (8 - 3) | 8 = 13
+        var br = new BitReader(Bits((8, 4), (3, 4), (8, 4), (13, 4), (5, 4), (13, 4)), 0, 3);
+        Assert.Equal(10, br.SGet2(4));
+        Assert.Equal(-10, br.SGet2(4));
+        Assert.Equal(5, br.SGet2(4));
+        Assert.Equal(-3, br.SGet2(4));
+        Assert.Equal(0, br.Remaining);
+        Assert.Throws<EndOfStreamException>(() => br.Get(1));   // never past the window
+    }
+
+    [Fact]
+    public void ARoutableLinesExtraBitIsOnePerPointAfterItsDeltas()
+    {
+        // Longitude signs vary, latitude all positive; the routing extra bit: one for the first point, then one
+        // after each point's deltas. Base nibbles 0: 2 bits, +1 for the varying sign on longitude.
+        var stream = Bits(
+            (0, 1),             // longitude: signs vary
+            (1, 1), (0, 1),     // latitude: all one sign, positive
+            (0, 1),             // the first point's extra bit
+            (1, 3), (2, 2), (1, 1),            // +1, +2, a routing node
+            (0b110, 3), (1, 2), (0, 1));       // -2, +1
+        var sub = new TreSubfile.Subdivision { Bits = 24, CLng = 1000, CLat = 2000 };
+        var pts = RgnSubfile.PolylinePoints(sub, 0, 0, extra: true, bstreamInfo: 0x00, stream, 0, stream.Length);
+        var u = ByteOps.CoordUnit;
+        Assert.Equal([(1000 * u, 2000 * u), (1001 * u, 2002 * u), (999 * u, 2003 * u)], pts);
+    }
+
     [Fact]
     public void S24IsSigned()
     {

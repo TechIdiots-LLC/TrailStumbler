@@ -9,11 +9,8 @@ namespace TrailStumbler.Core.Parsing.Garmin;
 /// RGN subfile: decode a subdivision's points, polylines and polygons into
 /// <see cref="ParsedFeature"/>s. Ported from GarminBridge's <c>rgn.py</c>.
 ///
-/// Record layouts and the coordinate bitstream (bits_per_coord + sign header)
-/// are from the imgdecode reference. The number of trailing points is computed
-/// exactly as (8*bitstream_bytes - sign_bits)/(blong+blat) rather than "read
-/// until bits run out" — this eliminates the stray trailing vertex that
-/// otherwise escapes the tile bounds (~0.04% of vertices).
+/// Record layouts are from the imgdecode reference; the coordinate bitstream follows mkgmap's LinePreparer (the
+/// writer), which GarminBridge's decoder misread for routable lines and large steps (see PolylinePoints).
 /// </summary>
 internal sealed class RgnSubfile
 {
@@ -31,40 +28,48 @@ internal sealed class RgnSubfile
     private static int BaseBits(int nib) => 2 + (nib <= 9 ? nib : 2 * nib - 9);
 
     // -- geometry ------------------------------------------------------
-    private static List<(double lon, double lat)> PolylinePoints(
+    /// <summary>
+    /// A polyline's or polygon's points from its bitstream, as mkgmap's LinePreparer writes it: a sign header for
+    /// longitude then latitude (1 bit "all the same sign", then that sign when set); when the record's extra-bit flag
+    /// is set (a routable line), one extra bit for the first point; then for each further point its longitude and
+    /// latitude deltas and, with the flag, one extra bit (the point is a routing node). A delta of a varying sign is
+    /// read with <see cref="BitReader.SGet2"/>, whose escapes let a large step take several values. Points run until
+    /// the bits do, less the byte's padding.
+    /// </summary>
+    internal static List<(double lon, double lat)> PolylinePoints(
         TreSubfile.Subdivision sub, int dx0, int dy0, bool extra, int bstreamInfo,
         byte[] data, int bstreamOff, int bstreamLen)
     {
         int shift = 24 - sub.Bits;
         var br = new BitReader(data, bstreamOff, bstreamLen);
-        int xSame = br.Get(1);
-        int xNeg = xSame != 0 ? br.Get(1) : 0;
-        int ySame = br.Get(1);
-        int yNeg = ySame != 0 ? br.Get(1) : 0;
-        int sbits = 2 + (xSame != 0 ? 1 : 0) + (ySame != 0 ? 1 : 0);
-        int blong = BaseBits(bstreamInfo & 0xF) + (xSame != 0 ? 0 : 1) + (extra ? 1 : 0);
-        int blat = BaseBits((bstreamInfo >> 4) & 0xF) + (ySame != 0 ? 0 : 1) + (extra ? 1 : 0);
-
-        int Delta(int bits, bool variable, int neg)
-        {
-            int v = br.Get(bits);
-            if (variable)
-            {
-                if ((v & (1 << (bits - 1))) != 0) v -= 1 << bits;
-                return v;
-            }
-            return neg != 0 ? -v : v;
-        }
-
         long lng = sub.CLng + ((long)dx0 << shift);
         long lat = sub.CLat + ((long)dy0 << shift);
         var pts = new List<(double, double)> { (lng * ByteOps.CoordUnit, lat * ByteOps.CoordUnit) };
-        int n = (blong + blat) != 0 ? (8 * bstreamLen - sbits) / (blong + blat) : 0;
-        for (int i = 0; i < n; i++)
+        try
         {
-            lng += (long)Delta(blong, xSame == 0, xNeg) << shift;
-            lat += (long)Delta(blat, ySame == 0, yNeg) << shift;
-            pts.Add((lng * ByteOps.CoordUnit, lat * ByteOps.CoordUnit));
+            bool xSame = br.Get(1) != 0;
+            bool xNeg = xSame && br.Get(1) != 0;
+            bool ySame = br.Get(1) != 0;
+            bool yNeg = ySame && br.Get(1) != 0;
+            if (extra) br.Get(1);   // the first point's
+            int blong = BaseBits(bstreamInfo & 0xF) + (xSame ? 0 : 1);
+            int blat = BaseBits((bstreamInfo >> 4) & 0xF) + (ySame ? 0 : 1);
+            int perPoint = blong + blat + (extra ? 1 : 0);
+            while (br.Remaining >= perPoint)
+            {
+                int dx = xSame ? (xNeg ? -br.Get(blong) : br.Get(blong)) : br.SGet2(blong);
+                int dy = ySame ? (yNeg ? -br.Get(blat) : br.Get(blat)) : br.SGet2(blat);
+                if (extra) br.Get(1);
+                // The byte's padding reads as a step of nothing: no point there (mkgmap writes none)
+                if (dx == 0 && dy == 0) continue;
+                lng += (long)dx << shift;
+                lat += (long)dy << shift;
+                pts.Add((lng * ByteOps.CoordUnit, lat * ByteOps.CoordUnit));
+            }
+        }
+        catch (EndOfStreamException)
+        {
+            // A last value cut short: the points read so far stand
         }
         return pts;
     }
