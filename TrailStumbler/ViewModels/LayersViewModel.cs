@@ -238,6 +238,41 @@ public partial class LayersViewModel : ObservableObject
         }
     }
 
+    /// <summary>Export several layers to one file: all of them, or those shown on the map (the checkboxes choose).</summary>
+    [RelayCommand]
+    private async Task ExportLayersAsync()
+    {
+        var all = ImportedLayers.Select(l => l.Layer).Concat(RecordedTracks.Select(t => t.Layer)).ToList();
+        if (all.Count == 0)
+        {
+            await Shell.Current.DisplayAlertAsync("Export", "There are no layers to export yet.", "OK");
+            return;
+        }
+        var shown = all.Where(l => l.IsVisible).ToList();
+        string allChoice = $"All layers ({all.Count})", shownChoice = $"Shown layers ({shown.Count})";
+        var which = await Shell.Current.DisplayActionSheetAsync("Export layers", "Cancel", null,
+            shown.Count > 0 && shown.Count < all.Count ? [allChoice, shownChoice] : [allChoice]);
+        var layers = which == allChoice ? all : which == shownChoice ? shown : null;
+        if (layers is null) return;
+
+        var format = await Shell.Current.DisplayActionSheetAsync($"Export {layers.Count} layer(s) as", "Cancel", null,
+            "GeoJSON", "KML", "GPX");
+        if (format is not ("GeoJSON" or "KML" or "GPX")) return;
+        try
+        {
+            string name = layers.Count == 1 ? layers[0].Name : $"TrailStumbler {DateTime.Now:yyyy-MM-dd}";
+            ImportStatus = $"Exporting {layers.Count} layer(s)…";
+            bool saved = await _export.ExportLayersAsync(layers, format, name);
+            ImportStatus = saved ? $"Exported {layers.Count} layer(s) as {format}" : "";
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[LayersViewModel] Export failed: {ex}");
+            ImportStatus = "";
+            await Shell.Current.DisplayAlertAsync("Export failed", ex.Message, "OK");
+        }
+    }
+
     // ── Row callbacks — recorded tracks ───────────────────────────────────────
 
     public async Task OnItemVisibilityChangedAsync(RecordingItemViewModel item, bool visible)

@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using CommunityToolkit.Maui.Storage;
 using TrailStumbler.Core.Export;
+using TrailStumbler.Core.GeoJson;
 using TrailStumbler.Core.Models;
 using TrailStumbler.Core.Services;
 
@@ -44,6 +45,43 @@ public class ExportService
         ms.Position = 0;
 
         var result = await FileSaver.Default.SaveAsync(SanitizeFileName(layer.Name) + ".kml", ms, ct);
+        return result.IsSuccessful;
+    }
+
+    /// <summary>Several layers (imported and recorded alike) to one GeoJSON, KML or GPX file.</summary>
+    public async Task<bool> ExportLayersAsync(IReadOnlyList<MapLayer> layers, string format, string fileName,
+        CancellationToken ct = default)
+    {
+        var withFeatures = new List<(MapLayer Layer, IReadOnlyList<MapFeature> Features)>();
+        foreach (var layer in layers)
+            withFeatures.Add((layer, await _repo.GetFeaturesAsync(layer.Id)));
+
+        using var ms = new MemoryStream();
+        string ext;
+        switch (format)
+        {
+            case "GeoJSON":
+                var json = GeoJsonBuilder.BuildFeatureCollection(withFeatures.Select(l => (l.Layer.Name, l.Features)).ToList());
+                await ms.WriteAsync(Encoding.UTF8.GetBytes(json), ct);
+                ext = ".geojson";
+                break;
+            case "KML":
+                await KmlWriter.WriteLayersAsync(ms, fileName, withFeatures);
+                ext = ".kml";
+                break;
+            case "GPX":
+                var gpx = new List<GpxLayer>();
+                foreach (var (layer, features) in withFeatures)
+                    gpx.Add(new GpxLayer(layer, features,
+                        layer.IsRecordedTrack ? await _repo.GetRecordingPointsByLayerAsync(layer.Id) : null));
+                await GpxWriter.WriteLayersAsync(ms, gpx);
+                ext = ".gpx";
+                break;
+            default:
+                return false;
+        }
+        ms.Position = 0;
+        var result = await FileSaver.Default.SaveAsync(SanitizeFileName(fileName) + ext, ms, ct);
         return result.IsSuccessful;
     }
 

@@ -14,22 +14,31 @@ public static class GeoJsonBuilder
 {
     public const string EmptyFeatureCollection = """{"type":"FeatureCollection","features":[]}""";
 
-    public static string BuildFeatureCollection(IReadOnlyList<MapFeature> features)
+    public static string BuildFeatureCollection(IReadOnlyList<MapFeature> features) =>
+        Build([(null, features)]);
+
+    /// <summary>Several layers' features in one collection, each with its layer's name as the property "layer".</summary>
+    public static string BuildFeatureCollection(IReadOnlyList<(string Layer, IReadOnlyList<MapFeature> Features)> layers) =>
+        Build(layers.Select(l => ((string?)l.Layer, l.Features)).ToList());
+
+    private static string Build(IReadOnlyList<(string? Layer, IReadOnlyList<MapFeature> Features)> layers)
     {
+        var features = layers.SelectMany(l => l.Features.Select(f => (l.Layer, Feature: f))).ToList();
         if (features.Count == 0) return EmptyFeatureCollection;
 
         int size = 64;
-        foreach (var f in features)
+        foreach (var (_, f) in features)
             size += f.CoordinatesJson.Length + f.PropertiesJson.Length + 96;
         var sb = new StringBuilder(size);
 
         sb.Append("""{"type":"FeatureCollection","features":[""");
         for (int i = 0; i < features.Count; i++)
         {
-            var f = features[i];
+            var (layer, f) = features[i];
             if (i > 0) sb.Append(',');
             sb.Append("""{"type":"Feature","properties":{"_fid":""");
             sb.Append(f.Id.ToString(CultureInfo.InvariantCulture));
+            if (layer is not null) sb.Append(",\"layer\":").Append(System.Text.Json.JsonSerializer.Serialize(layer));
             AppendPropertiesTail(sb, f.PropertiesJson);
             sb.Append(""","geometry":{"type":""").Append('"').Append(f.GeometryType).Append('"')
               .Append(""","coordinates":""").Append(f.CoordinatesJson).Append("}}");

@@ -14,8 +14,16 @@ public static class KmlWriter
 {
     private const string KmlNs = "http://www.opengis.net/kml/2.2";
 
-    public static async Task WriteAsync(Stream stream, MapLayer layer,
-        IReadOnlyList<MapFeature> features)
+    public static Task WriteAsync(Stream stream, MapLayer layer, IReadOnlyList<MapFeature> features) =>
+        WriteDocumentAsync(stream, layer.Name, [(layer, features)], folders: false);
+
+    /// <summary>Several layers in one document, a folder each.</summary>
+    public static Task WriteLayersAsync(Stream stream, string name,
+        IReadOnlyList<(MapLayer Layer, IReadOnlyList<MapFeature> Features)> layers) =>
+        WriteDocumentAsync(stream, name, layers, folders: true);
+
+    private static async Task WriteDocumentAsync(Stream stream, string name,
+        IReadOnlyList<(MapLayer Layer, IReadOnlyList<MapFeature> Features)> layers, bool folders)
     {
         var settings = new XmlWriterSettings
         {
@@ -29,10 +37,17 @@ public static class KmlWriter
         await w.WriteStartDocumentAsync();
         await w.WriteStartElementAsync(null, "kml", KmlNs);
         await w.WriteStartElementAsync(null, "Document", KmlNs);
-        await w.WriteElementStringAsync(null, "name", KmlNs, layer.Name);
+        await w.WriteElementStringAsync(null, "name", KmlNs, name);
 
+        foreach (var (layer, features) in layers)
+        {
+        if (folders)
+        {
+            await w.WriteStartElementAsync(null, "Folder", KmlNs);
+            await w.WriteElementStringAsync(null, "name", KmlNs, layer.Name);
+        }
         // One shared style for the layer fallback color.
-        string layerStyleId = "style_layer";
+        string layerStyleId = folders ? $"style_layer{layer.Id}" : "style_layer";
         await WriteStyleAsync(w, layerStyleId, layer.ColorHex, layer.Family);
 
         foreach (var feature in features)
@@ -57,6 +72,8 @@ public static class KmlWriter
             await w.WriteElementStringAsync(null, "styleUrl", KmlNs, $"#{styleId}");
             await WriteGeometryAsync(w, feature);
             await w.WriteEndElementAsync(); // Placemark
+        }
+        if (folders) await w.WriteEndElementAsync(); // Folder
         }
 
         await w.WriteEndElementAsync(); // Document
@@ -113,6 +130,17 @@ public static class KmlWriter
                 await w.WriteEndElementAsync();
                 break;
 
+            case "MultiLineString":
+                await w.WriteStartElementAsync(null, "MultiGeometry", KmlNs);
+                foreach (var part in Parts(feature.CoordinatesJson))
+                {
+                    await w.WriteStartElementAsync(null, "LineString", KmlNs);
+                    await w.WriteElementStringAsync(null, "coordinates", KmlNs, CoordArrayToKml(part, isPoint: false));
+                    await w.WriteEndElementAsync();
+                }
+                await w.WriteEndElementAsync(); // MultiGeometry
+                break;
+
             case "Polygon":
                 await w.WriteStartElementAsync(null, "Polygon", KmlNs);
                 await w.WriteStartElementAsync(null, "outerBoundaryIs", KmlNs);
@@ -165,6 +193,17 @@ public static class KmlWriter
         {
             return "";
         }
+    }
+
+    // A MultiLineString's lines, each as its own coordinate array's JSON
+    private static List<string> Parts(string coordsJson)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(coordsJson);
+            return doc.RootElement.EnumerateArray().Select(p => p.GetRawText()).ToList();
+        }
+        catch { return []; }
     }
 
     // For Polygon: CoordinatesJson is [[[lon,lat],...], ...] — extract outer ring.

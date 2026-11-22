@@ -8,6 +8,7 @@
 
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Import" Command="{Binding ImportCommand}" />
+        <ToolbarItem Text="Export" Command="{Binding ExportLayersCommand}" />
     </ContentPage.ToolbarItems>
 
     <Grid RowDefinitions="Auto,*">
