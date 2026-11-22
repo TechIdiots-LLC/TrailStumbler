@@ -23,6 +23,7 @@
 
 ### 🐞 Bug fixes
 - _...Add new stuff here..._
+- **Zoom to track works on Windows.** The map zoomed nowhere: on Windows the map is taken down while another tab shows and rebuilt on return, and the zoom was tried before it was back. It now waits for the map
 - **The map ends above the route sheet.** It ran on under the sheet's header, which hid its bottom edge and the attribution button; the open sheet still slides up over the map
 - **Garmin POIs and trails have their names.** Most points of interest had garbled names or another place's (a bitcoin ATM among the restaurants), and the main trails of TrailIntel's maps had none: a POI's name is in its POI record, and a routable trail's in its road record, which weren't read
 - **The Windows app opens where you left it**, at the size you left it and maximized if it was. It always opened at the default place and size, which could be partly under the taskbar. It's kept within the screen: a place under the taskbar, or on a monitor no longer there, is moved into view

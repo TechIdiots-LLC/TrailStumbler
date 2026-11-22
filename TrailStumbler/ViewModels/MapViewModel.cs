@@ -653,9 +653,17 @@ public partial class MapViewModel : ObservableObject
 
         try
         {
+            const double pad = 40;
             var cam = _controller.CameraForLatLngs(
                 new[] { (layer.MinLat, layer.MinLon), (layer.MaxLat, layer.MaxLon) },
-                padTop: 40, padLeft: 40, padBottom: 40, padRight: 40);
+                padTop: pad, padLeft: pad, padBottom: pad, padRight: pad);
+            // No map yet: on Windows MapLibre MAUI tears it down while another tab shows and builds it again on
+            // return, after OnAppearing; the fit waits for it (OnMapControllerReady tries again)
+            if (cam.Zoom <= 0 && cam.Lat == 0 && cam.Lon == 0)
+            {
+                _pendingFitLayer = layer;
+                return;
+            }
             // Clamp for single-point layers, where the bbox has zero extent.
             _controller.EaseTo(cam.Lat, cam.Lon, Math.Min(cam.Zoom, 16));
             StatusMessage = $"Zoomed to {layer.Name}";
