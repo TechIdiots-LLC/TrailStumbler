@@ -7,12 +7,12 @@
        Title="TrailStumbler">
 
     <TabBar>
-        <ShellContent Title="Layers"
-                      ContentTemplate="{DataTemplate views:LayersPage}"
-                      Route="LayersPage" />
         <ShellContent Title="Map"
                       ContentTemplate="{DataTemplate views:MapPage}"
                       Route="MapPage" />
+        <ShellContent Title="Layers"
+                      ContentTemplate="{DataTemplate views:LayersPage}"
+                      Route="LayersPage" />
         <ShellContent Title="Settings"
                       ContentTemplate="{DataTemplate views:SettingsPage}"
                       Route="SettingsPage" />
