@@ -21,7 +21,7 @@
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</SupportedOSPlatformVersion>
     <!-- Unpackaged Windows app â€” no Package.appxmanifest required -->
     <WindowsPackageType Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">None</WindowsPackageType>
-    <!-- The Windows projection MaplibreNative.Routing (0.1.0 to 0.2.1) was built with (WinRT.Runtime 2.3.1): an older SDK's would
+    <!-- The Windows projection MaplibreNative.Routing (0.1.0 to 0.2.2) was built with (WinRT.Runtime 2.3.1): an older SDK's would
          load a WinRT.Runtime older than it asks for -->
     <WindowsSdkPackageVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.87</WindowsSdkPackageVersion>
   </PropertyGroup>
@@ -34,7 +34,7 @@
     <PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
     <PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.10" />
     <PackageReference Include="MapLibreNative.Maui.Handlers" Version="5.0.0-pre.4" />
-    <PackageReference Include="MaplibreNative.Routing" Version="0.2.1" />
+    <PackageReference Include="MaplibreNative.Routing" Version="0.2.2" />
   </ItemGroup>
 
   <ItemGroup>

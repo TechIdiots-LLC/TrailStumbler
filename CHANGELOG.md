@@ -3,6 +3,7 @@
 ## master
 ### ✨ Features and improvements
 - _...Add new stuff here..._
+- **Routing updated to MaplibreNative.Routing 0.2.2.** The online "Auto (road)" choice takes highways like any road; the motorcycle and trail choices still avoid them
 - **Routing updated to MaplibreNative.Routing 0.2.1.** Offline routes keep to the main road (no hops through parking lots beside it, as on NH 16 through Pinkham Notch), with no false turns or names flapping at map-tile edges; "turn right to stay on" a road that bends at a junction; travel times are driving times; the first instruction isn't cut off by the next, and the voice no longer cuts itself off
 - **Routing updated to MaplibreNative.Routing 0.2.0.** Start follows the route you chose at once (it no longer plans it again); tap the instruction bar while navigating for the rest of the directions; the bar shows the next turn and the distance to it; a simulated drive follows a reroute (round a closure); long trips load the tiles along the way rather than the box round it. Stopping a simulated drive of a route not yet started goes back to the planned route
 - **The app opens on the map.** Map is the first tab, then Layers and Settings
