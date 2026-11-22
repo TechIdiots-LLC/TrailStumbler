@@ -15,6 +15,7 @@
 
 ### 🐞 Bug fixes
 - _...Add new stuff here..._
+- **The Windows app opens where you left it**, at the size you left it and maximized if it was. It always opened at the default place and size, which could be partly under the taskbar. It's kept within the screen: a place under the taskbar, or on a monitor no longer there, is moved into view
 - **The route sheet's routing log keeps a line per step.** Each tile downloaded added a line ("Downloading tiles (1254/9180)…", then 1255, ...); a step's progress now updates its own line
 - **Recording a track and navigating at once both keep the GPS.** They share the app's one GPS listener, and each turned it off when it ended: stopping or clearing a route while recording left the recording without positions, and stopping a recording while navigating left navigation without them
 - **Garmin .img import draws the trails where they are.** Lines on routable maps (TrailIntel's, GPS Trailmasters') came out as zig-zags and starbursts around the real trail, and some as long straight lines across the map: each point's routing bit was read as two bits in the wrong place, and a step too big for its bits (written as escapes) was read as a plain negative number. Both are now read as mkgmap writes them. Checked against GPS Trailmasters' GPX of the same 2023 release: every New Hampshire trail now has the Garmin line within 2.4 m (only 41% within 25 m before); TrailIntel's current New England map matches 95% of those 2023 trails within 10 m

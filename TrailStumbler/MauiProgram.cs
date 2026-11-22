@@ -3,6 +3,7 @@ using CommunityToolkit.Maui;
 using MapLibreNative.Maui.Handlers;
 using MaplibreNative.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui.LifecycleEvents;
 using TrailStumbler.Core.Services;
 using TrailStumbler.Services;
 using TrailStumbler.ViewModels;
@@ -19,6 +20,13 @@ public static class MauiProgram
         builder
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()
+            .ConfigureLifecycleEvents(events =>
+            {
+#if WINDOWS
+                // Opens where it was last left, within the screen
+                events.AddWindows(w => w.OnWindowCreated(window => WindowPlacement.Attach(window)));
+#endif
+            })
             .ConfigureMauiHandlers(handlers =>
             {
                 Debug.WriteLine("[MauiProgram] Registering MapLibreMap -> MapLibreMapHandler");
