@@ -10,6 +10,7 @@ using MaplibreNative.Routing.Core.Models;
 using MaplibreNative.Routing.Core.Navigation;
 using Microsoft.Extensions.DependencyInjection;
 using MaplibreNative.Routing.Core.Mvt;
+using MaplibreNative.Routing.Core.Utils;
 using TrailStumbler.Core.Models;
 using TrailStumbler.Core.Services;
 using TrailStumbler.Services;
@@ -76,7 +77,16 @@ public partial class MapViewModel : ObservableObject
     private const string OriginLayerId   = "wp-origin";
     private const string DestSourceId    = "wp-dest-src";
     private const string DestLayerId     = "wp-dest";
+    private const string ClosureSourceId = "closures-src";
+    private const string ClosureLayerId  = "closures";
     private const double SnapThresholdM  = 50;
+    private const double ClosureRadiusM  = 30;
+    private const double ClosedAheadM    = 60;   // "Closed ahead": the closure this far along the route
+    private const double SimulationSpeed = 4;    // a simulated drive, times real time
+    private const string VoicePreference = "voice_guidance";
+
+    // Places the route mustn't pass, for the next plan and every reroute
+    private readonly List<RouteClosure> _closures = [];
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(OriginLabel))]
@@ -127,11 +137,43 @@ public partial class MapViewModel : ObservableObject
     [RelayCommand]
     private void DecreaseRouteCount() { if (_routeCount > 1) RouteCount--; }
 
-    public bool IsPlacingPin => _isPlacingOrigin || _isPlacingDestination;
+    // Next map tap marks a closure there
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPlacingPin))]
+    [NotifyPropertyChangedFor(nameof(RouteSummary))]
+    [NotifyPropertyChangedFor(nameof(PlacingPrompt))]
+    private bool _isPlacingClosure;
+
+    public bool IsPlacingPin => _isPlacingOrigin || _isPlacingDestination || _isPlacingClosure;
+
+    public string PlacingPrompt => _isPlacingClosure ? "Tap the map where it's closed" : "Tap the map to place pin";
+
+    // ── Navigation ────────────────────────────────────────────────────────────
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(VoiceButtonText))]
+    private bool _isVoiceOn;
+    partial void OnIsVoiceOnChanged(bool value)
+    {
+        _session.Voice.IsEnabled = value;
+        try { Preferences.Default.Set(VoicePreference, value); } catch { }
+    }
+    public string VoiceButtonText => IsVoiceOn ? "Voice ✓" : "Voice";
+
+    // The user moved the map while navigating: it waits for Recenter
+    [ObservableProperty] private bool _isCameraPaused;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SimulateButtonText))]
+    private bool _isSimulating;
+    public string SimulateButtonText => IsSimulating ? "Stop drive" : "Simulate";
+
+    [ObservableProperty] private string _closuresLabel = "";
 
     /// <summary>One line for the route sheet's header, readable while it's tucked away.</summary>
     public string RouteSummary =>
-        _isNavigating ? "Navigating"
+        _isPlacingClosure ? "Tap the map where it's closed"
+        : _isNavigating ? IsSimulating ? "Simulated drive" : "Navigating"
         : IsPlacingPin ? $"Tap the map to place {(_isPlacingOrigin ? "A" : "B")}"
         : _origin is null && _destination is null ? "Set A and B, or long-press the map"
         : _origin is null ? "Set A"
@@ -206,6 +248,14 @@ public partial class MapViewModel : ObservableObject
         _session.AnnouncementNeeded += OnAnnouncementNeeded;
         // One GPS listener for the app: navigation's end (or a simulated drive) stops it, recording's leaves it on
         _recorder.GpsStillNeeded = () => _session.IsNavigating && !_session.IsSimulating;
+
+        _session.OffRoute += (_, _) => RouteStatusMessage = "Off the route: finding a new one…";
+        _session.Rerouted += (_, route) => OnRerouted(route);
+        _session.RerouteFailed += (_, e) => RouteStatusMessage = $"No new route: {e.Reason}";
+        _session.Arrived += (_, _) => RouteStatusMessage = "Arrived";
+        _session.Camera.PausedChanged += (_, _) => IsCameraPaused = _session.Camera.IsPaused;
+        _session.SimulationFinished += (_, _) => _ = StopSimulationAsync();
+        try { IsVoiceOn = Preferences.Default.Get(VoicePreference, true); } catch { IsVoiceOn = true; }
     }
 
     private static string SourceId(int layerId) => $"trail-src-{layerId}";
@@ -226,6 +276,7 @@ public partial class MapViewModel : ObservableObject
     {
         _controller = controller;
         _overlay.SetController(controller);
+        _session.Camera.SetController(controller);
         _addedLayerIds.Clear();
         _shownLayers.Clear();
 
@@ -511,7 +562,7 @@ public partial class MapViewModel : ObservableObject
     // ── Called from LayersViewModel ───────────────────────────────────────────
 
     private static bool IsPersistentLayerId(string id)
-        => id == RecordingLayerId || id == OriginLayerId || id == DestLayerId;
+        => id == RecordingLayerId || id == OriginLayerId || id == DestLayerId || id == ClosureLayerId;
 
     /// <summary>Re-adds all shown layers with the current paint settings (e.g. after label toggle).
     /// Operates on the already-loaded layer list — no DB round-trip needed.</summary>
@@ -653,6 +704,7 @@ public partial class MapViewModel : ObservableObject
     {
         IsPlacingOrigin = true;
         IsPlacingDestination = false;
+        IsPlacingClosure = false;
     }
 
     /// <summary>Enter destination-placement mode; the next map tap will drop the B pin.</summary>
@@ -661,6 +713,97 @@ public partial class MapViewModel : ObservableObject
     {
         IsPlacingDestination = true;
         IsPlacingOrigin = false;
+        IsPlacingClosure = false;
+    }
+
+    /// <summary>Mark a closure: the next map tap puts one there (on the nearest trail within 50 m).</summary>
+    [RelayCommand]
+    private void ActivateClosurePlacement()
+    {
+        IsPlacingClosure = true;
+        IsPlacingOrigin = false;
+        IsPlacingDestination = false;
+    }
+
+    /// <summary>Closed just ahead, on the route being followed: a closure a little further along it.</summary>
+    [RelayCommand]
+    private async Task ClosedAheadAsync()
+    {
+        if (_session.Engine.Progress is not { } p) { RouteStatusMessage = "No position on the route yet"; return; }
+        var shape = p.CurrentLeg.Shape;
+        var (lat, lon, _) = RouteGeometry.PointAlong(shape, RouteGeometry.Cumulative(shape), p.LegDistanceTraveledMeters + ClosedAheadM);
+        await AddClosureAsync(new RouteClosure(lat, lon, ClosureRadiusM));
+    }
+
+    private async Task AddClosureAsync(RouteClosure closure)
+    {
+        _closures.Add(closure);
+        UpdateClosuresOnMap();
+        if (!_isNavigating) return;
+        if (_session.Engine.Progress is null)
+        {
+            // Not under way yet: plan again from A, round it
+            await StartNavigationAsync();
+            return;
+        }
+        RouteStatusMessage = "Closed: finding a way round…";
+        var route = await _session.AddClosureAsync(closure);
+        if (route is null) RouteStatusMessage = "Nothing gets round that closure from here";
+    }
+
+    [RelayCommand]
+    private void ClearClosures()
+    {
+        _closures.Clear();
+        UpdateClosuresOnMap();
+    }
+
+    [RelayCommand]
+    private void ToggleVoice() => IsVoiceOn = !IsVoiceOn;
+
+    [RelayCommand]
+    private void Recenter() => _session.Camera.Recenter();
+
+    [RelayCommand]
+    private void ShowOverview() => _session.Camera.ShowOverview();
+
+    /// <summary>Drive the route as simulated GPS, to see it through before setting off.</summary>
+    [RelayCommand]
+    private async Task ToggleSimulationAsync()
+    {
+        if (IsSimulating) { await StopSimulationAsync(); return; }
+        if (_session.ActiveRoute is null) return;
+        _session.StartSimulation(SimulationSpeed);
+        IsSimulating = _session.IsSimulating;
+        OnPropertyChanged(nameof(RouteSummary));
+        await _recorder.ResumeGpsAsync();   // StartSimulation stops the GPS listener
+    }
+
+    private async Task StopSimulationAsync()
+    {
+        if (!IsSimulating) return;
+        _session.StopSimulation();
+        IsSimulating = false;
+        OnPropertyChanged(nameof(RouteSummary));
+        await _recorder.ResumeGpsAsync();
+    }
+
+    /// <summary>The map's size and the panels over it, for the navigation camera to frame the road ahead.</summary>
+    public void SetMapViewport(double width, double height, double topInset, double bottomInset)
+    {
+        _session.Camera.SetViewport(width, height);
+        _session.Camera.Camera.TopInset = topInset;
+        _session.Camera.Camera.BottomInset = bottomInset;
+    }
+
+    /// <summary>A new route from where the user is (off the route, or round a closure): the one card.</summary>
+    private void OnRerouted(DirectionsRoute route)
+    {
+        RouteOptions.Clear();
+        RouteOptions.Add(new RouteOptionViewModel(0, route, SelectRoute) { IsSelected = true });
+        OnPropertyChanged(nameof(HasRouteOptions));
+        HasHighwayWarning = route.HighwayWarning is { HighwayStepIndices.Count: > 0 };
+        RouteStatusMessage = "New route from here";
     }
 
     /// <summary>Called from MapPage when IsPlacingPin is true and the user taps/long-presses.
@@ -670,6 +813,13 @@ public partial class MapViewModel : ObservableObject
         var snapped = await SnapToTrailAsync(lat, lon);
         bool wasSnapped = snapped.HasValue;
         var coord = snapped ?? (lat, lon);
+
+        if (_isPlacingClosure)
+        {
+            IsPlacingClosure = false;
+            await AddClosureAsync(new RouteClosure(coord.Lat, coord.Lon, ClosureRadiusM));
+            return;
+        }
 
         if (_isPlacingOrigin)
         {
@@ -723,14 +873,29 @@ public partial class MapViewModel : ObservableObject
 
         UpdatePin(OriginSourceId, OriginLayerId, _origin, "#22AA22");
         UpdatePin(DestSourceId, DestLayerId, _destination, "#CC2222");
+        UpdateClosuresOnMap();
     }
 
-    private void UpdatePin(string srcId, string layId, (double Lat, double Lon)? coord, string color)
+    private void UpdateClosuresOnMap()
+    {
+        ClosuresLabel = _closures.Count switch
+        {
+            0 => "",
+            1 => "1 closure: routes go round it",
+            var n => $"{n} closures: routes go round them",
+        };
+        UpdatePoints(ClosureSourceId, ClosureLayerId, _closures.Select(c => (c.Lat, c.Lon)).ToList(), "#B71C1C", 8);
+    }
+
+    private void UpdatePin(string srcId, string layId, (double Lat, double Lon)? coord, string color) =>
+        UpdatePoints(srcId, layId, coord is { } c ? [c] : [], color, 10);
+
+    private void UpdatePoints(string srcId, string layId, IReadOnlyList<(double Lat, double Lon)> coords, string color, double radius)
     {
         if (_controller is null) return;
         try
         {
-            if (coord is null)
+            if (coords.Count == 0)
             {
                 // Remove if present.
                 if (_addedLayerIds.Remove(layId))
@@ -741,10 +906,10 @@ public partial class MapViewModel : ObservableObject
                 return;
             }
 
-            var geoJson = $"{{\"type\":\"FeatureCollection\",\"features\":[{{\"type\":\"Feature\"," +
-                          $"\"properties\":{{}},\"geometry\":{{\"type\":\"Point\",\"coordinates\":" +
-                          $"[{coord.Value.Lon.ToString("F6", System.Globalization.CultureInfo.InvariantCulture)}," +
-                          $"{coord.Value.Lat.ToString("F6", System.Globalization.CultureInfo.InvariantCulture)}]}}}}]}}";
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            var geoJson = "{\"type\":\"FeatureCollection\",\"features\":[" + string.Join(",", coords.Select(c =>
+                "{\"type\":\"Feature\",\"properties\":{},\"geometry\":{\"type\":\"Point\",\"coordinates\":[" +
+                c.Lon.ToString("F6", inv) + "," + c.Lat.ToString("F6", inv) + "]}}")) + "]}";
 
             if (_addedLayerIds.Contains(layId))
             {
@@ -757,7 +922,7 @@ public partial class MapViewModel : ObservableObject
                     belowLayerId: null, sourceLayer: null,
                     properties: new Dictionary<string, object?>
                     {
-                        ["circle-radius"] = 10.0,
+                        ["circle-radius"] = radius,
                         ["circle-color"] = color,
                         ["circle-stroke-color"] = "#FFFFFF",
                         ["circle-stroke-width"] = 2.0,
@@ -785,6 +950,11 @@ public partial class MapViewModel : ObservableObject
         RouteOptions.Clear();
         OnPropertyChanged(nameof(HasRouteOptions));
 
+        IsSimulating = false;
+        IsCameraPaused = false;
+        _closures.Clear();
+        UpdateClosuresOnMap();
+        IsPlacingClosure = false;
         Origin = null;
         Destination = null;
         OriginSnapped = false;
@@ -841,6 +1011,7 @@ public partial class MapViewModel : ObservableObject
                 TileCacheProvider = _tileCache,
                 MvtTileJsonUrl = _mvtTileJsonUrl,
                 TrackFeatures = tracks,
+                Closures = _closures.ToList(),
                 Progress = routeProgress,
                 CancellationToken = cts.Token,
             };
@@ -926,6 +1097,8 @@ public partial class MapViewModel : ObservableObject
     {
         await _session.StopAsync();
         await _recorder.ResumeGpsAsync();
+        IsSimulating = false;
+        IsCameraPaused = false;
         IsNavigating = false;
         CurrentProgress = null;
         HasHighwayWarning = false;

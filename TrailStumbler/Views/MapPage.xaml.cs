@@ -68,6 +68,17 @@ public partial class MapPage : ContentPage
 
         _vm.PropertyChanged += OnVmPropertyChanged;
         SizeChanged += (_, _) => SheetScroll.MaximumHeightRequest = Math.Max(160, Height * SheetMaxShare);
+        Map.SizeChanged += (_, _) => UpdateCameraViewport();
+        NavPanel.SizeChanged += (_, _) => UpdateCameraViewport();
+        RouteSheet.SizeChanged += (_, _) => UpdateCameraViewport();
+    }
+
+    /// <summary>The navigation camera frames the road ahead in the map left between the instruction panel and the sheet.</summary>
+    private void UpdateCameraViewport()
+    {
+        double top = NavPanel.IsVisible ? NavPanel.Height : 0;
+        double bottom = _sheetExpanded ? RouteSheet.Height : SheetHeader.Height;
+        _vm.SetMapViewport(Map.Width, Map.Height, Math.Max(0, top), Math.Max(0, bottom));
     }
 
     private void OnMapReady(object? sender, EventArgs e)
@@ -205,6 +216,10 @@ public partial class MapPage : ContentPage
             NavPanel.SetHighwayWarning(
                 _vm.HasHighwayWarning ? _vm.CurrentProgress?.Route.HighwayWarning : null);
         }
+        else if (e.PropertyName == nameof(MapViewModel.IsNavigating))
+        {
+            UpdateCameraViewport();
+        }
         else if (e.PropertyName == nameof(MapViewModel.IsPlacingPin) && !_vm.IsPlacingPin && _reopenAfterPin)
         {
             // The pin is placed: back to the planner
@@ -261,6 +276,7 @@ public partial class MapPage : ContentPage
             SheetScroll.MaximumHeightRequest);
         RouteSheet.TranslationY = rise;
         await RouteSheet.TranslateToAsync(0, 0, 200, Easing.CubicOut);
+        UpdateCameraViewport();
     }
 
     private async Task CollapseSheetAsync()
@@ -272,6 +288,7 @@ public partial class MapPage : ContentPage
         if (_sheetExpanded) return;   // opened again meanwhile
         SheetScroll.IsVisible = false;
         RouteSheet.TranslationY = 0;
+        UpdateCameraViewport();
     }
 
     private static void Log(string msg)
