@@ -197,6 +197,23 @@ public class ImgParserEndToEndTests
     private const byte PointType = 0x2C;
 
     [Fact]
+    public void ADirectoryWhereTheHeaderPutsItIsRead()
+    {
+        // A combined (gmapsupp-style) file: the directory at sector 8 (0x1000), not 0x600
+        using var stream = new MemoryStream(BuildSinglePointImg(dirSector: 8, mps: "Trail Map"));
+        Assert.Single(new ImgParser().Parse(stream));
+    }
+
+    [Fact]
+    public void ABackgroundMapInTheFileIsLeftOut()
+    {
+        using var stream = new MemoryStream(BuildSinglePointImg(dirSector: 8, mps: "Background Map"));
+        Assert.Empty(new ImgParser().Parse(stream));
+        using var all = new MemoryStream(BuildSinglePointImg(dirSector: 8, mps: "Background Map"));
+        Assert.Single(new ImgParser(skipBackgroundJunk: false).Parse(all));
+    }
+
+    [Fact]
     public void DecodesSinglePointTile()
     {
         var img = BuildSinglePointImg();
@@ -218,10 +235,11 @@ public class ImgParserEndToEndTests
 
     /// <summary>Builds a 3-block .img: header+FAT in block 0, TRE in block 1,
     /// RGN in block 2, describing one tile "000000" with a single point.</summary>
-    private static byte[] BuildSinglePointImg()
+    private static byte[] BuildSinglePointImg(int dirSector = 0, string? mps = null)
     {
         const int block = 8192;
-        var buf = new byte[3 * block];
+        const string tile = "00000007";
+        var buf = new byte[4 * block];
 
         // Header: DSKIMG signature at 0x10 (only needed by the sniffer) and the
         // block-size exponents at 0x61/0x62 giving 1 << (13 + 0) == 8192.
@@ -265,9 +283,30 @@ public class ImgParserEndToEndTests
         PutU32(buf, rgn + 0x19, rgnDataLen);
         int rgnSize = rgnDataOff + rgnDataLen;
 
-        // ---- FAT directory @0x600: TRE then RGN entry -------------------
-        WriteFatEntry(buf, 0x600, "000000", "TRE", treSize, blockNo: 1);
-        WriteFatEntry(buf, 0x800, "000000", "RGN", rgnSize, blockNo: 2);
+        // ---- MapSource MPS in block 3, naming map 7 ----------------------
+        int mpsSize = 0;
+        if (mps is not null)
+        {
+            var body = new List<byte>();
+            body.AddRange(BitConverter.GetBytes((ushort)1));       // product
+            body.AddRange(BitConverter.GetBytes((ushort)6660));    // family
+            body.AddRange(BitConverter.GetBytes(7u));              // map number: tile "00000007"
+            foreach (var str in new[] { "Test Series", mps, "Test Area" }) { body.AddRange(System.Text.Encoding.Latin1.GetBytes(str)); body.Add(0); }
+            body.AddRange(BitConverter.GetBytes(7u));
+            body.AddRange(BitConverter.GetBytes(0u));
+            int m = 3 * block;
+            buf[m] = (byte)'L';
+            PutU16(buf, m + 1, body.Count);
+            body.CopyTo(buf, m + 3);
+            mpsSize = 3 + body.Count;
+        }
+
+        // ---- FAT directory: TRE then RGN entry, where the header says (0x600 by default) --
+        buf[0x40] = (byte)dirSector;
+        int fat = dirSector > 0 ? dirSector * 512 : 0x600;
+        WriteFatEntry(buf, fat, tile, "TRE", treSize, blockNo: 1);
+        WriteFatEntry(buf, fat + 0x200, tile, "RGN", rgnSize, blockNo: 2);
+        if (mps is not null) WriteFatEntry(buf, fat + 0x400, "MAPSOURC", "MPS", mpsSize, blockNo: 3);
         return buf;
     }
 

@@ -3,14 +3,14 @@ using System.Text;
 namespace TrailStumbler.Core.Parsing.Garmin;
 
 /// <summary>
-/// IMG container: parse the FAT and reassemble subfiles from 8 KB blocks.
-/// Ported from GarminBridge's <c>imgfile.py</c>.
+/// IMG container: parse the FAT and reassemble subfiles from blocks. Ported from GarminBridge's <c>imgfile.py</c>,
+/// with the directory and block size read from the header rather than assumed.
 ///
-/// A classic Garmin .img is a fake-FAT disk image. Directory entries live at
-/// offset 0x600, 512 bytes each, flag byte 0x01. Each entry names a subfile
-/// (8-char name + 3-char type e.g. RGN/TRE/LBL/NET/NOD/TYP), its size, a part
-/// number (subfiles &gt; 240 blocks span multiple entries) and a list of 16-bit
-/// block numbers. Block size for these maps is 8192 bytes.
+/// A classic Garmin .img is a fake-FAT disk image. The directory starts at the sector the header's byte 0x40 gives
+/// (0x400 in a single map's file, the first entry the header's own; 0x1000 in a combined gmapsupp-style one), 512
+/// bytes an entry, flag byte 0x01. Each entry names a subfile (8-char name + 3-char type e.g. RGN/TRE/LBL/NET/NOD/
+/// TYP/MPS), its size, a part number (subfiles spanning many blocks take several entries) and a list of 16-bit block
+/// numbers. The block size is 1 &lt;&lt; (E1 + E2) from the header (0x61/0x62): 1024 to 8192 in the maps seen.
 ///
 /// Encrypted/XOR-obfuscated maps are not supported (the reference decoder reads
 /// the header and FAT verbatim); those are rejected by the format sniffer.
@@ -24,6 +24,7 @@ internal sealed class ImgFile : IDisposable
     // (offsets 0x61/0x62). Small maps use 1024-byte blocks, large routable maps
     // 8192 — hardcoding either misreads the other.
     private readonly int _blockSize;
+    private readonly long _fatStart;
 
     private sealed class Subfile
     {
@@ -70,6 +71,11 @@ internal sealed class ImgFile : IDisposable
         int e2 = hdr.Length > 1 ? hdr[1] : 0;
         _blockSize = 1 << (e1 + e2);
         _blockBuf = new byte[_blockSize];
+        // The directory starts where the header says (byte 0x40, in 512-byte sectors): 0x400 in a single map's
+        // file, later in a combined one (0x1000 in GPS Trailmasters' New England gmapsupp-style file). 0x600 was
+        // right only by luck, as a single map's first entry (at 0x400) is the header's own.
+        int dirSector = Read(0x40, 1) is { Length: 1 } d ? d[0] : 0;
+        _fatStart = dirSector > 0 ? dirSector * 512L : FatStart;
         Label = ReadMapsetLabel();
         ParseFat();
     }
@@ -113,7 +119,7 @@ internal sealed class ImgFile : IDisposable
 
     private void ParseFat()
     {
-        long off = FatStart;
+        long off = _fatStart;
         while (true)
         {
             var e = Read(off, FatEntry);
@@ -164,6 +170,46 @@ internal sealed class ImgFile : IDisposable
             .Select(kv => kv.Key)
             .ToList();
         names.Sort(StringComparer.Ordinal);
+        return names;
+    }
+
+    /// <summary>
+    /// Each map's description by its tile name ("00190950" → "Trail Map"), from the MapSource MPS record a
+    /// combined (gmapsupp-style) file carries; empty when there's none. An MPS "L" record is: 'L', a 16-bit length,
+    /// the product and family ids (16-bit each), the map number (32-bit, the tile name in decimal), then the series
+    /// name, the map's description and the area, each NUL-terminated.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> MapDescriptions()
+    {
+        var names = new Dictionary<string, string>();
+        foreach (var ((_, typ), sf) in _subfiles)
+        {
+            if (typ != "MPS") continue;
+            var d = sf.Read(this);
+            for (int o = 0; o + 3 <= d.Length;)
+            {
+                char kind = (char)d[o];
+                int len = ByteOps.U16(d, o + 1);
+                int body = o + 3;
+                if (len <= 0 || body + len > d.Length) break;
+                if (kind == 'L' && len >= 8)
+                {
+                    uint map = ByteOps.U32(d, body + 4);
+                    int p = body + 8;
+                    string Next()
+                    {
+                        int end = Array.IndexOf(d, (byte)0, p, body + len - p);
+                        if (end < 0) end = body + len;
+                        var s = Latin1(d, p, end - p);
+                        p = end + 1;
+                        return s;
+                    }
+                    Next();                       // the series ("GPS Trailmasters ATV New England V12.00")
+                    names[map.ToString("D8")] = Next();
+                }
+                o = body + len;
+            }
+        }
         return names;
     }
 

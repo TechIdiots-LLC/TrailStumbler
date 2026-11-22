@@ -40,12 +40,20 @@ public class ImgParser : IGisParser
         _skipBackgroundJunk = skipBackgroundJunk;
     }
 
+    /// <summary>A map described as a background map or basemap, as TrailIntel's and GPS Trailmasters' are.</summary>
+    internal static bool IsBackgroundMap(string description) =>
+        description.Contains("background", StringComparison.OrdinalIgnoreCase) ||
+        description.Contains("basemap", StringComparison.OrdinalIgnoreCase);
+
     public List<ParsedFeature> Parse(Stream stream)
     {
         var results = new List<ParsedFeature>();
         using var img = new ImgFile(stream);
+        var described = img.MapDescriptions();
         foreach (var name in img.MapTiles())
         {
+            // A combined file's background map (roads, water, towns: millions of features) isn't trails
+            if (_skipBackgroundJunk && described.TryGetValue(name, out var what) && IsBackgroundMap(what)) continue;
             var treData = img.ReadSubfile(name, "TRE");
             var rgnData = img.ReadSubfile(name, "RGN");
             if (treData is null || rgnData is null) continue;
