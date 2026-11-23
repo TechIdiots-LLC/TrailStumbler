@@ -6,6 +6,7 @@
 
 ### 🐞 Bug fixes
 - _...Add new stuff here..._
+- **The turn instructions no longer cover the map's buttons.** While navigating, the map starts below the instruction panel, so the 3D terrain, zoom and compass buttons and the scale bar stay in view.
 
 ## 0.2.0
 ### ✨ Features and improvements

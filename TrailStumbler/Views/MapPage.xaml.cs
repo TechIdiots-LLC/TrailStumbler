@@ -84,20 +84,31 @@ public partial class MapPage : ContentPage
         _vm.PropertyChanged += OnVmPropertyChanged;
         SizeChanged += (_, _) => SheetScroll.MaximumHeightRequest = Math.Max(160, Height * SheetMaxShare);
         Map.SizeChanged += (_, _) => UpdateCameraViewport();
-        NavPanel.SizeChanged += (_, _) => UpdateCameraViewport();
+        NavPanel.SizeChanged += (_, _) => UpdateMapMargin();
+        NavPanel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(IsVisible)) UpdateMapMargin();
+        };
         RouteSheet.SizeChanged += (_, _) => UpdateCameraViewport();
-        // The map ends where the folded sheet begins, so nothing of it (the attribution, its bottom edge) is under
-        // the sheet; the open sheet slides up over it
-        SheetHeader.SizeChanged += (_, _) => Map.Margin = new Thickness(0, 0, 0, Math.Max(0, SheetHeader.Height));
+        SheetHeader.SizeChanged += (_, _) => UpdateMapMargin();
     }
 
-    /// <summary>The navigation camera frames the road ahead in the map left between the instruction panel and the sheet.</summary>
-    private void UpdateCameraViewport()
+    /// <summary>
+    /// The map lies between the directions panel (while navigating) and the folded sheet, so neither covers its
+    /// controls or attribution; the open sheet slides up over it.
+    /// </summary>
+    private void UpdateMapMargin()
     {
         double top = NavPanel.IsVisible ? NavPanel.Height : 0;
-        // The map stops at the folded sheet; only the open sheet covers it
+        Map.Margin = new Thickness(0, Math.Max(0, top), 0, Math.Max(0, SheetHeader.Height));
+    }
+
+    /// <summary>The navigation camera frames the road ahead in the map left uncovered by the open sheet.</summary>
+    private void UpdateCameraViewport()
+    {
+        // The map starts below the directions panel and stops at the folded sheet; only the open sheet covers it
         double bottom = _sheetExpanded ? RouteSheet.Height - SheetHeader.Height : 0;
-        _vm.SetMapViewport(Map.Width, Map.Height, Math.Max(0, top), Math.Max(0, bottom));
+        _vm.SetMapViewport(Map.Width, Map.Height, 0, Math.Max(0, bottom));
     }
 
     private void OnMapReady(object? sender, EventArgs e)
