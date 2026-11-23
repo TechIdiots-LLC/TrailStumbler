@@ -3,6 +3,12 @@
 ## master
 ### ✨ Features and improvements
 - _...Add new stuff here..._
+
+### 🐞 Bug fixes
+- _...Add new stuff here..._
+
+## 0.2.0
+### ✨ Features and improvements
 - **A scale bar on the map.** Top left, a bar of a round distance in kilometres or metres, which changes as you zoom.
 - **Leave points out of a recorded track.** ✎ on a recording (Layers → My recordings) opens it on the map with its points: tap one point, then another, and **Exclude** the stretch between (a road driven by mistake), or **Include** it again. The points are kept, but the track is drawn, measured and exported without them, a gap where they were rather than a line across it
 - **Export several layers at once.** **Export** on the Layers page saves all your layers, or those shown on the map, to one GeoJSON, KML or GPX file: GeoJSON tags each feature with its layer, KML gives each layer a folder, and GPX has the points as waypoints and the trails and recordings as tracks (recordings with their times and elevations)
@@ -24,7 +30,6 @@
 - **3D terrain button on the map** — a button above the zoom controls turns 3D terrain on and off, as in VistumblerMAUI. On the WifiDB Color Relief styles it uses the style's own elevation data; on a style without any, such as WifiDB OSM or a custom style, the app adds WifiDB's terrain. Tilt the map to see the hills: drag up or down with two fingers on Android.
 
 ### 🐞 Bug fixes
-- _...Add new stuff here..._
 - **Zoom to track works on Windows.** The map zoomed nowhere: on Windows the map is taken down while another tab shows and rebuilt on return, and the zoom was tried before it was back. It now waits for the map
 - **The map ends above the route sheet.** It ran on under the sheet's header, which hid its bottom edge and the attribution button; the open sheet still slides up over the map
 - **Garmin POIs and trails have their names.** Most points of interest had garbled names or another place's (a bitcoin ATM among the restaurants), and the main trails of TrailIntel's maps had none: a POI's name is in its POI record, and a routable trail's in its road record, which weren't read
