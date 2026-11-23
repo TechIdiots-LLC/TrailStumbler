@@ -6,6 +6,7 @@
 
 ### 🐞 Bug fixes
 - _...Add new stuff here..._
+- **Imported points no longer pile up as black dots.** Garages, ATMs and banks, fire and police stations, post offices, town halls, pharmacies, laundromats and shops on the TrailIntel maps get their own icons (re-import a map to see them); other points are a small faded dot instead of a large black one, points with no name are left out, and where icons would overlap, the ones with an icon show first and the rest appear as you zoom in.
 - **The turn instructions no longer cover the map's buttons.** While navigating, the map starts below the instruction panel, so the 3D terrain, zoom and compass buttons and the scale bar stay in view.
 
 ## 0.2.0

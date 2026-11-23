@@ -543,30 +543,38 @@ public partial class MapViewModel : ObservableObject
         return paint;
     }
 
-    // Maps the "category" property (from KML icon href filename) to colored sprite names
-    // present in the WDB OSM basemap style. OnStyleImageMissingReceived is the future hook
-    // for bundling sprites in-app when using styles that lack them.
+    // The "category" property (a KML icon's file name, or a Garmin point's type or name) → a sprite of the WDB OSM
+    // basemap style's colored set. OnStyleImageMissingReceived is the future hook for bundling sprites in-app when
+    // using styles that lack them.
+    private static readonly (string Category, string Sprite)[] CategorySprites =
+    [
+        ("parking", "colored:parking_15"), ("fuel", "colored:fuel_15"), ("food", "colored:restaurant_15"),
+        ("lodging", "colored:hotel_15"), ("camping", "colored:campsite_15"), ("star", "colored:star_15"),
+        ("scenic_view", "colored:attraction_15"), ("restroom", "colored:toilets_15"), ("atv_club", "colored:warehouse_15"),
+        ("fire_station", "colored:fire_station_15"), ("police", "colored:police_15"), ("post_office", "colored:post_15"),
+        ("town_hall", "colored:town_hall_15"), ("pharmacy", "colored:pharmacy_15"), ("bank", "colored:bank_15"),
+        ("repair", "colored:car_15"), ("laundry", "colored:laundry_15"), ("shop", "colored:shop_15"),
+    ];
+
+    // A value for points with one of the categories above, another for the rest
+    private static object[] ByCategory(object known, object other) =>
+        ["match", new object[] { "get", "category" }, CategorySprites.Select(c => c.Category).ToArray(), known, other];
+
     private Dictionary<string, object?> SymbolLayout()
     {
+        var match = new List<object> { "match", new object[] { "get", "category" } };
+        foreach (var (category, sprite) in CategorySprites) { match.Add(category); match.Add(sprite); }
+        match.Add("colored:dot_11");   // the rest: a small dot, faded, that gives way to the icons
         var layout = new Dictionary<string, object?>
         {
-            ["icon-image"] = new object[]
-            {
-                "case",
-                new object[] { "==", new object[] { "get", "category" }, "parking" },     "colored:parking_15",
-                new object[] { "==", new object[] { "get", "category" }, "fuel" },         "colored:fuel_15",
-                new object[] { "==", new object[] { "get", "category" }, "food" },         "colored:restaurant_15",
-                new object[] { "==", new object[] { "get", "category" }, "lodging" },      "colored:hotel_15",
-                new object[] { "==", new object[] { "get", "category" }, "camping" },      "colored:campsite_15",
-                new object[] { "==", new object[] { "get", "category" }, "star" },         "colored:star_15",
-                new object[] { "==", new object[] { "get", "category" }, "scenic_view" },  "colored:attraction_15",
-                new object[] { "==", new object[] { "get", "category" }, "restroom" },     "colored:toilets_15",
-                new object[] { "==", new object[] { "get", "category" }, "atv_club" },     "colored:warehouse_15",
-                "colored:circle_15",
-            },
-            ["icon-size"] = 1.2,
-            ["icon-allow-overlap"] = true,
-            ["icon-ignore-placement"] = true,
+            ["icon-image"] = match.ToArray(),
+            ["icon-size"] = ByCategory(1.2, 1.0),
+            ["icon-opacity"] = ByCategory(1.0, 0.55),
+            // Icons don't pile up: where they would overlap, one with a category is placed before a dot and the
+            // others wait for a closer zoom
+            ["symbol-sort-key"] = ByCategory(0, 1),
+            ["icon-allow-overlap"] = false,
+            ["icon-ignore-placement"] = false,
         };
         if (_isLabelsVisible)
         {
