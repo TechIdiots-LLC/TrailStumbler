@@ -9,8 +9,8 @@
              Title="Map">
 
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="{Binding LabelsButtonText}"
-                     Command="{Binding ToggleLabelsCommand}" />
+        <ToolbarItem Text="Labels"
+                     Command="{Binding ChooseLabelsCommand}" />
     </ContentPage.ToolbarItems>
 
     <Grid x:Name="Root" RowDefinitions="*,Auto">

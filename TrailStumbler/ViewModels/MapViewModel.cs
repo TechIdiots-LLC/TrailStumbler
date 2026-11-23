@@ -17,6 +17,9 @@ using TrailStumbler.Services;
 
 namespace TrailStumbler.ViewModels;
 
+/// <summary>What the map labels trails or points with.</summary>
+public enum LabelText { Name, Description, None }
+
 /// <summary>
 /// Singleton owner of the live map state. LayersViewModel calls into it for
 /// visibility toggles / zoom-to-layer even while MapPage isn't instantiated;
@@ -56,20 +59,41 @@ public partial class MapViewModel : ObservableObject
     public string RecordButtonText => IsRecording ? "■" : "●";
     private DateTime _recordingStartedAt;
     [ObservableProperty] private string _recordingStatus = "";
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(LabelsButtonText))]
-    private bool _isLabelsVisible = true;
+    // What the trails and the points are labelled with, as the web map's Line Label and Point Label
+    private const string LineLabelsPreference = "Labels_Lines", PointLabelsPreference = "Labels_Points";
+    private LabelText _lineLabels = LoadLabelText(LineLabelsPreference);
+    private LabelText _pointLabels = LoadLabelText(PointLabelsPreference);
+    // Off until MaplibreNativeMAUI draws line-placed labels over GeoJSON sources (none drawn on Windows in pre.5)
+    private static readonly bool TrailLabelsWork = false;
 
-    public string LabelsButtonText => _isLabelsVisible ? "Labels ✓" : "Labels";
-
-    partial void OnIsLabelsVisibleChanged(bool value)
+    private static LabelText LoadLabelText(string key)
     {
-        if (_controller is not null)
-            _ = RefreshMapLayersAsync();
+        try { return Enum.TryParse<LabelText>(Preferences.Default.Get(key, ""), out var v) ? v : LabelText.Name; }
+        catch { return LabelText.Name; }
     }
 
     [RelayCommand]
-    private void ToggleLabels() => IsLabelsVisible = !_isLabelsVisible;
+    private async Task ChooseLabelsAsync()
+    {
+        var choices = new List<(string Text, bool Lines, LabelText Value)>();
+        foreach (var (lines, current, what) in new[] { (true, _lineLabels, "Trails"), (false, _pointLabels, "Points") })
+        {
+            if (lines && !TrailLabelsWork) continue;
+            foreach (var value in Enum.GetValues<LabelText>())
+                choices.Add(($"{what}: {value.ToString().ToLowerInvariant()}{(value == current ? " ✓" : "")}", lines, value));
+        }
+
+        var picked = await Shell.Current.DisplayActionSheetAsync("Labels", "Cancel", null,
+            choices.Select(c => c.Text).ToArray());
+        var choice = choices.FirstOrDefault(c => c.Text == picked);
+        if (choice.Text is null) return;
+
+        if (choice.Lines) _lineLabels = choice.Value; else _pointLabels = choice.Value;
+        try { Preferences.Default.Set(choice.Lines ? LineLabelsPreference : PointLabelsPreference, choice.Value.ToString()); }
+        catch { }
+        if (_controller is not null)
+            await RefreshMapLayersAsync();
+    }
 
     // ── Tap-to-inspect popup ──────────────────────────────────────────────────
     [ObservableProperty] private MapFeatureInfo? _selectedFeature;
@@ -359,6 +383,12 @@ public partial class MapViewModel : ObservableObject
                 _controller.AddLineLayer(mapLayerId, SourceId(layer.Id),
                     belowLayerId: null, sourceLayer: null, properties: LinePaint(layer.ColorHex),
                     enableInteraction: true);
+                if (TrailLabelsWork && _lineLabels != LabelText.None)
+                {
+                    _controller.AddSymbolLayer(LineLabelLayerId(layer), SourceId(layer.Id),
+                        belowLayerId: null, sourceLayer: null, properties: LineLabelLayout());
+                    _addedLayerIds.Add(LineLabelLayerId(layer));
+                }
                 break;
 
             case GeometryFamily.Polygon:
@@ -383,7 +413,7 @@ public partial class MapViewModel : ObservableObject
     private void RemoveLayerFromMap(MapLayer layer)
     {
         if (_controller is null) return;
-        foreach (var id in new[] { MapLayerId(layer), $"trail-{layer.Id}-outline" })
+        foreach (var id in new[] { LineLabelLayerId(layer), MapLayerId(layer), $"trail-{layer.Id}-outline" })
         {
             if (!_addedLayerIds.Remove(id)) continue;
             try { _controller.RemoveLayer(id); }
@@ -531,32 +561,35 @@ public partial class MapViewModel : ObservableObject
     // through import) and fall back to the layer color — same expression the user's
     // atv-trail-map web page uses.
 
-    private Dictionary<string, object?> LinePaint(string colorHex, double width = 3.0)
+    private static Dictionary<string, object?> LinePaint(string colorHex, double width = 3.0) => new()
     {
-        var paint = new Dictionary<string, object?>
+        ["line-color"] = new object[]
         {
-            ["line-color"] = new object[]
-            {
-                "case",
-                new object[] { "has", "stroke" },
-                new object[] { "get", "stroke" },
-                colorHex,
-            },
-            ["line-width"] = width,
-            ["line-opacity"] = 0.85,
-        };
-        if (_isLabelsVisible)
-        {
-            paint["text-field"] = new object[] { "coalesce", new object[] { "get", "name" }, "" };
-            paint["text-size"] = 11.0;
-            paint["text-color"] = "#333333";
-            paint["text-halo-color"] = "#FFFFFF";
-            paint["text-halo-width"] = 1.0;
-            paint["text-max-angle"] = 30.0;
-            paint["symbol-placement"] = "line";
-        }
-        return paint;
-    }
+            "case",
+            new object[] { "has", "stroke" },
+            new object[] { "get", "stroke" },
+            colorHex,
+        },
+        ["line-width"] = width,
+        ["line-opacity"] = 0.85,
+    };
+
+    private static string LineLabelLayerId(MapLayer layer) => $"trail-{layer.Id}-label";
+
+    // A line layer can't draw text, so a trail's labels are a symbol layer of their own along it
+    private Dictionary<string, object?> LineLabelLayout() => new()
+    {
+        ["text-field"] = LabelField(_lineLabels),
+        ["symbol-placement"] = "line",
+        ["text-font"] = new object[] { "Open Sans Regular" },
+        ["text-size"] = 11.0,
+        ["text-color"] = "#333333",
+        ["text-halo-color"] = "#FFFFFF",
+        ["text-halo-width"] = 1.0,
+    };
+
+    private static object[] LabelField(LabelText text) =>
+        ["coalesce", new object[] { "get", text == LabelText.Description ? "description" : "name" }, ""];
 
     // The "category" property (a KML icon's file name, or a Garmin point's type or name) → a sprite of the WDB OSM
     // basemap style's colored set. OnStyleImageMissingReceived is the future hook for bundling sprites in-app when
@@ -591,9 +624,9 @@ public partial class MapViewModel : ObservableObject
             ["icon-allow-overlap"] = false,
             ["icon-ignore-placement"] = false,
         };
-        if (_isLabelsVisible)
+        if (_pointLabels != LabelText.None)
         {
-            layout["text-field"] = new object[] { "coalesce", new object[] { "get", "name" }, "" };
+            layout["text-field"] = LabelField(_pointLabels);
             layout["text-size"] = 11.0;
             layout["text-anchor"] = "top";
             layout["text-offset"] = new object[] { 0.0, 0.5 };

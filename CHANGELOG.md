@@ -4,6 +4,7 @@
 ### ✨ Features and improvements
 - _...Add new stuff here..._
 - **Choose which points the map shows.** **Settings → Points on the map** lists the kinds of imported points, each with a box to show or hide it on every points layer at once. Fuel, parking and trailheads, food, lodging, camping, scenic places, restrooms, ATV clubs and starred places are shown at first; town services and other trail map points are there to turn on. Waypoints of your own (GPX, GeoJSON) always show.
+- **Point labels can show the description.** The map's **Labels** button, which used to switch labels on and off, now picks what points are labelled with: their name, their description or nothing, as the web map's Point Label did. The choice is remembered.
 
 ### 🐞 Bug fixes
 - _...Add new stuff here..._
