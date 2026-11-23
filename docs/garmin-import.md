@@ -49,8 +49,12 @@ The product is recognised from the map's MapSource name ("TrailIntel ATV Map NE"
 "GPS Trailmasters ATV New England V12.00"). A map of any other make gets one stable colour per type, and no kinds or
 restrictions.
 
-Points: 0x2a is food, 0x2f01 fuel, 0x2f0b parking and trailheads, 0x2c04 scenic places, parks and camping. The 0x64
-group mixes lodging, sales and services, so it gets the generic marker.
+Points: 0x2a is food, 0x2f01 fuel, 0x2f0b parking and trailheads, 0x2c04 scenic places, parks and camping. TrailIntel's
+maps put everything else under 0x6400 (Garmin's generic man-made feature): garages, ATMs, fire and police, post
+offices, stores, homes, about a third of their points. Its category comes from words in the name (`GARAGE`,
+`MECANIQUE`, `ATM`, `CASERNE`, `POSTAL`, …, table in `GarminTypeClasses.NameCategories`), matched as whole words
+without accents; a name with none keeps the generic marker. A 0x6400 point with no name says nothing, so it isn't
+imported (3,320 of 12,107 on the two NE maps).
 
 ## Who may use a trail
 

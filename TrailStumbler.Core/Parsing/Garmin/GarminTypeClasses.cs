@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Text;
+
 namespace TrailStumbler.Core.Parsing.Garmin;
 
 /// <summary>The trail map products whose line types are known (each maker numbers them its own way).</summary>
@@ -72,12 +75,35 @@ internal static class GarminTypeClasses
         return GarminProduct.Unknown;
     }
 
+    /// <summary>The trail maps' catch-all point type (Garmin's generic man-made feature): only the name says what it is.</summary>
+    public const string GenericPointType = "0x6400";
+
+    // Words or phrases in a generic point's name, by category; the first match wins, so a fire station or post office
+    // inside a store is the former. Matched on whole words, upper case, without accents.
+    private static readonly (string Category, string[] Words)[] NameCategories =
+    [
+        ("fire_station", ["FIRE", "CASERNE", "POMPIERS", "INCENDIE"]),
+        ("police", ["POLICE", "RCMP", "SHERIFF", "SURETE", "TROOPER", "TROOPERS"]),
+        ("post_office", ["POSTAL", "POST OFFICE", "CANADA POST", "POSTES CANADA", "USPS"]),
+        ("town_hall", ["TOWN HALL", "TOWN OFFICE", "CITY HALL", "HOTEL DE VILLE", "MAIRIE", "MUNICIPAL"]),
+        ("pharmacy", ["PHARMACY", "PHARMACIE", "DRUG", "DRUGS", "FAMILIPRIX", "PHARMAPRIX", "UNIPRIX", "PROXIM",
+            "JEAN COUTU", "CVS", "WALGREENS", "RITE AID"]),
+        ("bank", ["ATM", "BANK", "BANQUE", "CAISSE", "DESJARDINS", "CREDIT UNION", "BITCOIN", "CARDTRONICS", "LIBERTYX",
+            "CIBC"]),
+        ("repair", ["GARAGE", "MECANIQUE", "CARROSSERIE", "DEBOSSELAGE", "PNEUS", "TIRE", "TIRES", "AUTO", "TOWING",
+            "REMORQUAGE"]),
+        ("laundry", ["LAUNDROMAT", "LAUNDRY", "BUANDERIE"]),
+        ("shop", ["HARDWARE", "QUINCAILLERIE", "WALMART", "DEPANNEUR", "STORE", "MARKET", "VARIETY", "SUPPLY",
+            "GROCERY", "EPICERIE"]),
+    ];
+
     /// <summary>
-    /// A point's Garmin type ("0x2f01") as one of the sprite categories the map knows from the KML import (see
-    /// <c>MapViewModel.SymbolLayout</c>); null for the generic circle. Checked against GPS Trailmasters' KMZ points:
-    /// 0x2a food, 0x2f01 fuel, 0x2f0b parking and trailheads, 0x2c04 scenic places, parks and camping.
+    /// A point's Garmin type ("0x2f01") as one of the sprite categories the map knows (see
+    /// <c>MapViewModel.SymbolLayout</c>); null for the generic dot. Checked against GPS Trailmasters' KMZ points:
+    /// 0x2a food, 0x2f01 fuel, 0x2f0b parking and trailheads, 0x2c04 scenic places, parks and camping. A
+    /// <see cref="GenericPointType"/> point is categorised by words in its <paramref name="name"/>.
     /// </summary>
-    public static string? CategoryForPoint(string garminType)
+    public static string? CategoryForPoint(string garminType, string name = "")
     {
         if (!TryCode(garminType, out int code)) return null;
         return code switch
@@ -85,6 +111,7 @@ internal static class GarminTypeClasses
             0x2f01 => "fuel",
             0x2f0b => "parking",
             0x2c04 => "scenic_view",
+            0x6400 => CategoryFromName(name),
             _ => ((code >> 8) & 0xFF) switch
             {
                 0x2a => "food",
@@ -92,6 +119,25 @@ internal static class GarminTypeClasses
                 _ => null,
             },
         };
+    }
+
+    private static string? CategoryFromName(string name)
+    {
+        if (name.Length == 0) return null;
+        // " WORD WORD " so a phrase matches only on word boundaries
+        var text = new StringBuilder(" ");
+        foreach (char c in name.Normalize(NormalizationForm.FormD))
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark) continue;   // É → E
+            if (char.IsLetterOrDigit(c)) text.Append(char.ToUpperInvariant(c));
+            else if (text[^1] != ' ') text.Append(' ');
+        }
+        if (text[^1] != ' ') text.Append(' ');
+        var words = text.ToString();
+        foreach (var (category, phrases) in NameCategories)
+            foreach (var phrase in phrases)
+                if (words.Contains($" {phrase} ", StringComparison.Ordinal)) return category;
+        return null;
     }
 
     /// <summary>A line type's kind on the product's map, or null when it isn't known.</summary>

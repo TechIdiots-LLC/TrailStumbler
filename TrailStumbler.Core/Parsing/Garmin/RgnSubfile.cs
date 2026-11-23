@@ -166,6 +166,9 @@ internal sealed class RgnSubfile
             double lon = (sub.CLng + ((long)dx << shift)) * ByteOps.CoordUnit;
             double lat = (sub.CLat + ((long)dy << shift)) * ByteOps.CoordUnit;
             string garminType = $"0x{typ:x2}{subtype:x2}";
+            // A catch-all point says what it is only by its name: without one it's just a dot
+            if (garminType == GarminTypeClasses.GenericPointType && name.Length == 0)
+                continue;
 
             var sb = new StringBuilder();
             AppendPos(sb, lon, lat);
@@ -280,7 +283,7 @@ internal sealed class RgnSubfile
         if (name.Length > 0) sb.Append(",\"name\":").Append(JsonSerializer.Serialize(name));
         // Emit the "category" key the symbol layer reads for its coloured sprite,
         // derived from the Garmin POI type — same sprite path as the KML import.
-        var category = GarminTypeClasses.CategoryForPoint(garminType);
+        var category = GarminTypeClasses.CategoryForPoint(garminType, name);
         if (category != null) sb.Append(",\"category\":\"").Append(category).Append('"');
         sb.Append('}');
         return sb.ToString();

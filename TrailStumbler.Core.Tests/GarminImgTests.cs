@@ -109,6 +109,35 @@ public class GarminTypeClassTests
     [Fact]
     public void UnconfirmedPoiTypeFallsBackToGenericSprite()
         => Assert.Null(GarminTypeClasses.CategoryForPoint("0x6400"));   // lodging, sales, services alike
+
+    // Names from TrailIntel's ATV and snowmobile maps (NE), whose catch-all type holds them all
+    [Theory]
+    [InlineData("GRETNA FIRE DEPARTMENT", "fire_station")]
+    [InlineData("CASERNE D'INCENDIE", "fire_station")]
+    [InlineData("ROYAL CANADIAN MOUNTED POLICE (RCMP)", "police")]
+    [InlineData("UNITED STATES POSTAL SERVICE", "post_office")]
+    [InlineData("CANADA POST - LA QUINCAILLERIE DE L EST", "post_office")]   // the post office, not the hardware store
+    [InlineData("CIBC BRANCH WITH ATM", "bank")]
+    [InlineData("EMO DRUGS", "pharmacy")]
+    [InlineData("GARAGE GAETAN AUBRY", "repair")]
+    [InlineData("Garage Mécanique Picard", "repair")]                        // accents and case
+    [InlineData("SUNNY CREST LAUNDROMAT", "laundry")]
+    [InlineData("TRACTOR SUPPLY CO.", "shop")]
+    [InlineData("JAY MUNICIPAL BUILDING", "town_hall")]
+    public void GenericPoiTakesItsCategoryFromItsName(string name, string category)
+        => Assert.Equal(category, GarminTypeClasses.CategoryForPoint(GarminTypeClasses.GenericPointType, name));
+
+    [Theory]
+    [InlineData("HOME")]
+    [InlineData("TRADING POST")]          // "POST" alone isn't a post office
+    [InlineData("FIREWOOD FOR SALE")]     // a whole word, not part of one
+    [InlineData("AUTOMOTIVE")]
+    public void GenericPoiWithoutAKnownWordKeepsTheDot(string name)
+        => Assert.Null(GarminTypeClasses.CategoryForPoint(GarminTypeClasses.GenericPointType, name));
+
+    [Fact]
+    public void OnlyTheGenericTypeIsReadByName()
+        => Assert.Equal("food", GarminTypeClasses.CategoryForPoint("0x2a00", "SHELL GARAGE"));
 }
 
 public class LabelBoundaryTests
