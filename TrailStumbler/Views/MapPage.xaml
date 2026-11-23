@@ -13,7 +13,7 @@
                      Command="{Binding ToggleLabelsCommand}" />
     </ContentPage.ToolbarItems>
 
-    <Grid RowDefinitions="*,Auto">
+    <Grid x:Name="Root" RowDefinitions="*,Auto">
 
         <!-- Map fills Row 0. All trail/recording layers are added imperatively via
              the controller once the style has loaded (OnMapControllerReady). -->
@@ -90,15 +90,45 @@
                    Text="{Binding PlacingPrompt}" />
         </Border>
 
+        <!-- Record and Recenter are map controls: the code-behind moves them into the top right corner's stack, below
+             the map's own buttons, which are 30 wide on Windows and 40 on Android. -->
+
+        <!-- Record a track: the button, and while recording how long and how far -->
+        <HorizontalStackLayout x:Name="RecordControl" Spacing="6">
+            <Border Padding="10,6"
+                    BackgroundColor="#CC000000"
+                    StrokeShape="RoundRectangle 14"
+                    Stroke="Transparent"
+                    VerticalOptions="Center"
+                    IsVisible="{Binding RecordingStatus, Converter={StaticResource IsNotNullOrEmpty}}">
+                <Label Text="{Binding RecordingStatus}" TextColor="White" FontSize="12" />
+            </Border>
+            <Button Text="{Binding RecordButtonText}"
+                    Command="{Binding ToggleRecordingCommand}"
+                    SemanticProperties.Description="Record a track"
+                    WidthRequest="{OnPlatform WinUI=30, Default=40}"
+                    HeightRequest="{OnPlatform WinUI=30, Default=40}"
+                    MinimumWidthRequest="0" MinimumHeightRequest="0"
+                    CornerRadius="{OnPlatform WinUI=15, Default=20}" Padding="0"
+                    FontSize="{OnPlatform WinUI=14, Default=18}"
+                    BackgroundColor="#D32F2F" TextColor="White">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsRecording}" Value="False">
+                        <Setter Property="BackgroundColor" Value="White" />
+                        <Setter Property="TextColor" Value="#D32F2F" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+        </HorizontalStackLayout>
+
         <!-- Recenter: the user moved the map while navigating; follow again -->
         <Button x:Name="RecenterButton"
-                Grid.Row="0"
                 Text="Recenter"
                 Command="{Binding RecenterCommand}"
-                VerticalOptions="End" HorizontalOptions="Start"
-                Margin="10,0,0,84"
                 BackgroundColor="#1565C0" TextColor="White"
-                FontSize="13" Padding="14,0" CornerRadius="20"
+                HeightRequest="{OnPlatform WinUI=30, Default=40}" MinimumHeightRequest="0"
+                CornerRadius="{OnPlatform WinUI=15, Default=20}"
+                FontSize="13" Padding="14,0"
                 IsVisible="False">
             <Button.Triggers>
                 <MultiTrigger TargetType="Button">
@@ -112,7 +142,8 @@
         </Button>
 
         <!-- Editing a recorded track: what's selected, how much is kept, and what to do with the selection -->
-        <Border Grid.Row="0"
+        <Border x:Name="TrackEditPanel"
+                Grid.Row="0"
                 VerticalOptions="Start"
                 Margin="8,8,56,8"
                 Padding="12,10"
@@ -139,33 +170,6 @@
                 </Grid>
             </VerticalStackLayout>
         </Border>
-
-        <!-- Record a track: the button, and while recording how long and how far -->
-        <HorizontalStackLayout Grid.Row="0"
-                               VerticalOptions="End" HorizontalOptions="End"
-                               Margin="0,0,10,84" Spacing="8">
-            <Border Padding="10,6"
-                    BackgroundColor="#CC000000"
-                    StrokeShape="RoundRectangle 14"
-                    Stroke="Transparent"
-                    VerticalOptions="Center"
-                    IsVisible="{Binding RecordingStatus, Converter={StaticResource IsNotNullOrEmpty}}">
-                <Label Text="{Binding RecordingStatus}" TextColor="White" FontSize="12" />
-            </Border>
-            <Button Text="{Binding RecordButtonText}"
-                    Command="{Binding ToggleRecordingCommand}"
-                    SemanticProperties.Description="Record a track"
-                    WidthRequest="48" HeightRequest="48" CornerRadius="24" Padding="0"
-                    FontSize="20"
-                    BackgroundColor="#D32F2F" TextColor="White">
-                <Button.Triggers>
-                    <DataTrigger TargetType="Button" Binding="{Binding IsRecording}" Value="False">
-                        <Setter Property="BackgroundColor" Value="White" />
-                        <Setter Property="TextColor" Value="#D32F2F" />
-                    </DataTrigger>
-                </Button.Triggers>
-            </Button>
-        </HorizontalStackLayout>
 
         <!-- Pull-up route planner sheet. It sizes to its content; code-behind slides it up and down, and caps the
              content's height (scrolling beyond) so the map stays usable. Its header shows while it's tucked away. -->

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
+using MapLibreNative.Maui;
 using MapLibreNative.Maui.Handlers;
 using TrailStumbler.Services;
 using TrailStumbler.ViewModels;
@@ -29,6 +30,15 @@ public partial class MapPage : ContentPage
         Log("ctor start");
         InitializeComponent();
         BindingContext = _vm = vm;
+
+        // Record and Recenter stack below the map's own buttons, top right
+        Root.Remove(RecordControl);
+        Root.Remove(RecenterButton);
+        Map.AddControl(RecordControl, MapControlCorner.TopRight);
+        Map.AddControl(RecenterButton, MapControlCorner.TopRight);
+        // The track editor keeps clear of that corner, which widens while a recording's status shows
+        Map.ControlInsetsChanged += (_, _) =>
+            TrackEditPanel.Margin = new Thickness(8, 8, Math.Max(56, Map.ControlInsets.TopRight.Width), 8);
 
         Map.HandlerChanged += (_, _) =>
             Log($"Map.HandlerChanged handler={Map.Handler?.GetType().Name ?? "null"}");
