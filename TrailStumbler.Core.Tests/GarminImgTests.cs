@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Text.Json;
+using TrailStumbler.Core.GeoJson;
 using TrailStumbler.Core.Models;
 using TrailStumbler.Core.Parsing;
 using TrailStumbler.Core.Parsing.Garmin;
@@ -134,6 +135,16 @@ public class GarminTypeClassTests
     [InlineData("AUTOMOTIVE")]
     public void GenericPoiWithoutAKnownWordKeepsTheDot(string name)
         => Assert.Null(GarminTypeClasses.CategoryForPoint(GarminTypeClasses.GenericPointType, name));
+
+    [Theory]
+    [InlineData("""{"garmin_type":"0x6400","zoom":0,"name":"GARAGE X","category":"repair"}""", "repair")]
+    [InlineData("""{"garmin_type":"0x6400","zoom":0,"name":"HOME"}""", PointCategory.Other)]   // a setting can hide it
+    [InlineData("""{"name":"Camp","icon":"https://x/campground.png","category":"campground"}""", "campground")]
+    [InlineData("""{"name":"My waypoint","ele":"312"}""", null)]                               // a GPX waypoint: always shown
+    [InlineData("""{"garmin_type":"0x2a00","zoom":0}""", null)]
+    [InlineData("", null)]
+    public void PointsAreShownOrHiddenByCategory(string propertiesJson, string? category)
+        => Assert.Equal(category, PointCategory.Of(propertiesJson));
 
     [Fact]
     public void OnlyTheGenericTypeIsReadByName()

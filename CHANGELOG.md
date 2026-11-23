@@ -3,10 +3,11 @@
 ## master
 ### ✨ Features and improvements
 - _...Add new stuff here..._
+- **Choose which points the map shows.** **Settings → Points on the map** lists the kinds of imported points, each with a box to show or hide it on every points layer at once. Fuel, parking and trailheads, food, lodging, camping, scenic places, restrooms, ATV clubs and starred places are shown at first; town services and other trail map points are there to turn on. Waypoints of your own (GPX, GeoJSON) always show.
 
 ### 🐞 Bug fixes
 - _...Add new stuff here..._
-- **Imported points no longer pile up as black dots.** Garages, ATMs and banks, fire and police stations, post offices, town halls, pharmacies, laundromats and shops on the TrailIntel maps get their own icons (re-import a map to see them); other points are a small faded dot instead of a large black one, points with no name are left out, and where icons would overlap, the ones with an icon show first and the rest appear as you zoom in.
+- **Imported points no longer pile up as black dots.** About a third of the points on the TrailIntel maps were a large black dot drawn over everything. The ones whose names say what they are (garages, ATMs and banks, fire and police stations, post offices, town halls, pharmacies, laundromats, shops) get their own icons, which Settings can show; the rest are a small faded dot, hidden unless Settings shows them, and points with no name are left out. Re-import a map to sort its points. Where icons would overlap, the ones with an icon show first and the rest appear as you zoom in.
 - **The turn instructions no longer cover the map's buttons.** While navigating, the map starts below the instruction panel, so the 3D terrain, zoom and compass buttons and the scale bar stay in view.
 
 ## 0.2.0

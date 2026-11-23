@@ -97,10 +97,10 @@ public class SqliteLayerRepository : ILayerRepository, IRouteDataSource
         });
     }
 
-    public async Task<string> BuildLayerGeoJsonAsync(int layerId)
+    public async Task<string> BuildLayerGeoJsonAsync(int layerId, Func<MapFeature, bool>? include = null)
     {
         var features = await GetFeaturesAsync(layerId);
-        return GeoJsonBuilder.BuildFeatureCollection(features);
+        return GeoJsonBuilder.BuildFeatureCollection(include is null ? features : features.Where(include).ToList());
     }
 
     // ── Recording session management ─────────────────────────────────────────

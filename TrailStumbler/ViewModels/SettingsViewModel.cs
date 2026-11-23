@@ -47,4 +47,27 @@ public partial class SettingsViewModel : ObservableObject
         if (IsCustom && !string.IsNullOrWhiteSpace(value))
             MapStyles.StyleUrl = value;
     }
+
+    /// <summary>The kinds of imported points, each shown on the map or not.</summary>
+    public List<PointCategoryOption> PointCategories { get; } =
+        PointCategorySettings.All.Select(e => new PointCategoryOption(e.Category, e.Label)).ToList();
+}
+
+/// <summary>A kind of point in Settings' list: ticked to show it on the map.</summary>
+public partial class PointCategoryOption : ObservableObject
+{
+    private readonly string _category;
+
+    public PointCategoryOption(string category, string label)
+    {
+        _category = category;
+        Label = label;
+        _isShown = PointCategorySettings.IsShown(category);
+    }
+
+    public string Label { get; }
+
+    [ObservableProperty] private bool _isShown;
+
+    partial void OnIsShownChanged(bool value) => PointCategorySettings.SetShown(_category, value);
 }

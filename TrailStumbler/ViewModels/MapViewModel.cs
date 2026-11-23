@@ -265,6 +265,19 @@ public partial class MapViewModel : ObservableObject
         _session.Camera.PausedChanged += (_, _) => IsCameraPaused = _session.Camera.IsPaused;
         _session.SimulationFinished += (_, _) => _ = StopSimulationAsync();
         try { IsVoiceOn = Preferences.Default.Get(VoicePreference, true); } catch { IsVoiceOn = true; }
+        PointCategorySettings.Changed += () => MainThread.BeginInvokeOnMainThread(() => _ = ReloadPointLayersAsync());
+    }
+
+    /// <summary>The points layers again, after a category was shown or hidden in Settings.</summary>
+    private async Task ReloadPointLayersAsync()
+    {
+        if (_controller is null) return;   // the next style load builds them from the settings
+        foreach (var layer in _shownLayers.Where(l => l.Family == GeometryFamily.Point).ToList())
+        {
+            RemoveLayerFromMap(layer);
+            await AddLayerToMapAsync(layer);
+        }
+        UpdateWaypointPinsOnMap();   // the route's pins stay on top
     }
 
     private static string SourceId(int layerId) => $"trail-src-{layerId}";
@@ -335,7 +348,9 @@ public partial class MapViewModel : ObservableObject
         var mapLayerId = MapLayerId(layer);
         if (_addedLayerIds.Contains(mapLayerId)) return;
 
-        var geoJson = await _repo.BuildLayerGeoJsonAsync(layer.Id);
+        var geoJson = layer.Family == GeometryFamily.Point
+            ? await _repo.BuildLayerGeoJsonAsync(layer.Id, f => PointCategorySettings.Shows(f.PropertiesJson))
+            : await _repo.BuildLayerGeoJsonAsync(layer.Id);
         _controller.AddGeoJsonSource(SourceId(layer.Id), geoJson);
 
         switch (layer.Family)
@@ -729,7 +744,7 @@ public partial class MapViewModel : ObservableObject
                 Title = feature.Name.Length > 0 ? feature.Name : layer.Name,
                 LayerName = layer.Name,
                 Description = feature.Description,
-                Category = ExtractCategory(feature.PropertiesJson),
+                Category = PointCategorySettings.LabelOf(ExtractCategory(feature.PropertiesJson)),
             };
             IsPopupVisible = true;
             return;

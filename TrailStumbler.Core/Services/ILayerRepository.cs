@@ -17,8 +17,8 @@ public interface ILayerRepository
     Task UpdateLayerAsync(MapLayer layer);
     Task DeleteLayerAsync(int layerId);
 
-    /// <summary>Build the layer's FeatureCollection GeoJSON string.</summary>
-    Task<string> BuildLayerGeoJsonAsync(int layerId);
+    /// <summary>Build the layer's FeatureCollection GeoJSON string, of the features <paramref name="include"/> keeps (all without it).</summary>
+    Task<string> BuildLayerGeoJsonAsync(int layerId, Func<MapFeature, bool>? include = null);
 
     // ── Recording session management ─────────────────────────────────────────
 

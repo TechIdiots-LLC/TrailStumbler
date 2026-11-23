@@ -6,19 +6,40 @@
              x:Class="TrailStumbler.Views.SettingsPage"
              Title="Settings">
 
-    <VerticalStackLayout Padding="16" Spacing="12">
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="12">
 
-        <Label Text="Basemap style" FontAttributes="Bold" />
-        <Picker ItemsSource="{Binding StyleNames}"
-                SelectedItem="{Binding SelectedStyleName, Mode=TwoWay}" />
+            <Label Text="Basemap style" FontAttributes="Bold" />
+            <Picker ItemsSource="{Binding StyleNames}"
+                    SelectedItem="{Binding SelectedStyleName, Mode=TwoWay}" />
 
-        <Entry Placeholder="https://…/style.json"
-               Text="{Binding CustomStyleUrl, Mode=TwoWay}"
-               IsVisible="{Binding IsCustom}" />
+            <Entry Placeholder="https://…/style.json"
+                   Text="{Binding CustomStyleUrl, Mode=TwoWay}"
+                   IsVisible="{Binding IsCustom}" />
 
-        <Label Text="The map picks up style changes the next time it appears."
-               FontSize="12" TextColor="Gray" />
+            <Label Text="The map picks up style changes the next time it appears."
+                   FontSize="12" TextColor="Gray" />
 
-    </VerticalStackLayout>
+            <!-- Which imported points the map shows -->
+            <Label Text="Points on the map" FontAttributes="Bold" Margin="0,12,0,0" />
+            <Label Text="Kinds of imported points to show. Waypoints of your own (GPX, GeoJSON) always show."
+                   FontSize="12" TextColor="Gray" />
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding PointCategories}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="vm:PointCategoryOption">
+                        <HorizontalStackLayout Spacing="4">
+                            <CheckBox IsChecked="{Binding IsShown, Mode=TwoWay}" VerticalOptions="Center" />
+                            <Label Text="{Binding Label}" VerticalOptions="Center">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnCategoryLabelTapped" />
+                                </Label.GestureRecognizers>
+                            </Label>
+                        </HorizontalStackLayout>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
 
 </ContentPage>

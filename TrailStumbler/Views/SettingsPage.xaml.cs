@@ -9,4 +9,11 @@ public partial class SettingsPage : ContentPage
         InitializeComponent();
         BindingContext = vm;
     }
+
+    // A category's name ticks its box too
+    private void OnCategoryLabelTapped(object? sender, TappedEventArgs e)
+    {
+        if ((sender as BindableObject)?.BindingContext is PointCategoryOption option)
+            option.IsShown = !option.IsShown;
+    }
 }
