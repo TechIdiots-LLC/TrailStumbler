@@ -31,7 +31,9 @@ public partial class MapPage : ContentPage
         InitializeComponent();
         BindingContext = _vm = vm;
 
-        // Record and Recenter stack below the map's own buttons, top right
+        // A scale bar top left (metric, as the app's distances are); Record and Recenter stack below the map's own
+        // buttons, top right
+        Map.AddControl(new ScaleControl(), MapControlCorner.TopLeft);
         Root.Remove(RecordControl);
         Root.Remove(RecenterButton);
         Map.AddControl(RecordControl, MapControlCorner.TopRight);
